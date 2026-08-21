@@ -14,7 +14,9 @@ import { Route as AuthRouteImport } from './routes/auth'
 import { Route as CarritoRouteImport } from './routes/carrito'
 import { Route as ExplorarRouteImport } from './routes/explorar'
 import { Route as MapaRouteImport } from './routes/mapa'
+import { Route as PanelRouteImport } from './routes/panel'
 import { Route as PedidosRouteImport } from './routes/pedidos'
+import { Route as PerfilRouteImport } from './routes/perfil'
 import { Route as ArtesanoIdRouteImport } from './routes/artesano.$id'
 import { Route as ProductoIdRouteImport } from './routes/producto.$id'
 
@@ -43,9 +45,19 @@ const MapaRoute = MapaRouteImport.update({
   path: '/mapa',
   getParentRoute: () => rootRouteImport,
 } as any)
+const PanelRoute = PanelRouteImport.update({
+  id: '/panel',
+  path: '/panel',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const PedidosRoute = PedidosRouteImport.update({
   id: '/pedidos',
   path: '/pedidos',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PerfilRoute = PerfilRouteImport.update({
+  id: '/perfil',
+  path: '/perfil',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ArtesanoIdRoute = ArtesanoIdRouteImport.update({
@@ -65,7 +77,9 @@ export interface FileRoutesByFullPath {
   '/carrito': typeof CarritoRoute
   '/explorar': typeof ExplorarRoute
   '/mapa': typeof MapaRoute
+  '/panel': typeof PanelRoute
   '/pedidos': typeof PedidosRoute
+  '/perfil': typeof PerfilRoute
   '/artesano/$id': typeof ArtesanoIdRoute
   '/producto/$id': typeof ProductoIdRoute
 }
@@ -75,7 +89,9 @@ export interface FileRoutesByTo {
   '/carrito': typeof CarritoRoute
   '/explorar': typeof ExplorarRoute
   '/mapa': typeof MapaRoute
+  '/panel': typeof PanelRoute
   '/pedidos': typeof PedidosRoute
+  '/perfil': typeof PerfilRoute
   '/artesano/$id': typeof ArtesanoIdRoute
   '/producto/$id': typeof ProductoIdRoute
 }
@@ -86,7 +102,9 @@ export interface FileRoutesById {
   '/carrito': typeof CarritoRoute
   '/explorar': typeof ExplorarRoute
   '/mapa': typeof MapaRoute
+  '/panel': typeof PanelRoute
   '/pedidos': typeof PedidosRoute
+  '/perfil': typeof PerfilRoute
   '/artesano/$id': typeof ArtesanoIdRoute
   '/producto/$id': typeof ProductoIdRoute
 }
@@ -98,7 +116,9 @@ export interface FileRouteTypes {
     | '/carrito'
     | '/explorar'
     | '/mapa'
+    | '/panel'
     | '/pedidos'
+    | '/perfil'
     | '/artesano/$id'
     | '/producto/$id'
   fileRoutesByTo: FileRoutesByTo
@@ -108,7 +128,9 @@ export interface FileRouteTypes {
     | '/carrito'
     | '/explorar'
     | '/mapa'
+    | '/panel'
     | '/pedidos'
+    | '/perfil'
     | '/artesano/$id'
     | '/producto/$id'
   id:
@@ -118,7 +140,9 @@ export interface FileRouteTypes {
     | '/carrito'
     | '/explorar'
     | '/mapa'
+    | '/panel'
     | '/pedidos'
+    | '/perfil'
     | '/artesano/$id'
     | '/producto/$id'
   fileRoutesById: FileRoutesById
@@ -129,7 +153,9 @@ export interface RootRouteChildren {
   CarritoRoute: typeof CarritoRoute
   ExplorarRoute: typeof ExplorarRoute
   MapaRoute: typeof MapaRoute
+  PanelRoute: typeof PanelRoute
   PedidosRoute: typeof PedidosRoute
+  PerfilRoute: typeof PerfilRoute
   ArtesanoIdRoute: typeof ArtesanoIdRoute
   ProductoIdRoute: typeof ProductoIdRoute
 }
@@ -171,11 +197,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof MapaRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/panel': {
+      id: '/panel'
+      path: '/panel'
+      fullPath: '/panel'
+      preLoaderRoute: typeof PanelRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/pedidos': {
       id: '/pedidos'
       path: '/pedidos'
       fullPath: '/pedidos'
       preLoaderRoute: typeof PedidosRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/perfil': {
+      id: '/perfil'
+      path: '/perfil'
+      fullPath: '/perfil'
+      preLoaderRoute: typeof PerfilRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/artesano/$id': {
@@ -201,7 +241,9 @@ const rootRouteChildren: RootRouteChildren = {
   CarritoRoute: CarritoRoute,
   ExplorarRoute: ExplorarRoute,
   MapaRoute: MapaRoute,
+  PanelRoute: PanelRoute,
   PedidosRoute: PedidosRoute,
+  PerfilRoute: PerfilRoute,
   ArtesanoIdRoute: ArtesanoIdRoute,
   ProductoIdRoute: ProductoIdRoute,
 }
