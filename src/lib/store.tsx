@@ -1,5 +1,5 @@
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
-import { productosBase, type Producto } from "./data";
+import { productosBase, resenasBase, type Producto, type Resena } from "./data";
 
 export type Usuario = {
   nombre: string;
@@ -29,6 +29,28 @@ export const estadosPedido: EstadoPedido[] = [
   "Entregado",
 ];
 
+export type RolMensaje = "comprador" | "artesano";
+
+export type Mensaje = { de: RolMensaje; texto: string; fecha: string };
+
+export type Conversacion = {
+  id: string;
+  artesanoId: string;
+  artesanoNombre: string;
+  productoId?: string | undefined;
+  productoNombre?: string | undefined;
+  comprador: string;
+  mensajes: Mensaje[];
+};
+
+export type Notificacion = {
+  id: string;
+  titulo: string;
+  detalle: string;
+  fecha: string;
+  leida: boolean;
+};
+
 type Ctx = {
   usuario: Usuario | null;
   registrar: (u: Usuario & { password: string }) => void;
@@ -46,6 +68,19 @@ type Ctx = {
   pedidos: Pedido[];
   confirmarPedido: () => Pedido | null;
   avanzarPedido: (id: string) => void;
+  favoritos: string[];
+  toggleFavorito: (productoId: string) => void;
+  resenas: Resena[];
+  agregarResena: (r: Omit<Resena, "id" | "fecha">) => void;
+  conversaciones: Conversacion[];
+  iniciarConversacion: (
+    artesanoId: string,
+    artesanoNombre: string,
+    producto?: { id: string; nombre: string },
+  ) => string;
+  enviarMensaje: (conversacionId: string, de: RolMensaje, texto: string) => void;
+  notificaciones: Notificacion[];
+  marcarNotificacionesLeidas: () => void;
 };
 
 const AppCtx = createContext<Ctx | null>(null);
@@ -58,6 +93,10 @@ type Persist = {
   productos: Producto[];
   carrito: ItemCarrito[];
   pedidos: Pedido[];
+  favoritos: string[];
+  resenas: Resena[];
+  conversaciones: Conversacion[];
+  notificaciones: Notificacion[];
 };
 
 const inicial: Persist = {
@@ -66,7 +105,19 @@ const inicial: Persist = {
   productos: productosBase,
   carrito: [],
   pedidos: [],
+  favoritos: [],
+  resenas: resenasBase,
+  conversaciones: [],
+  notificaciones: [],
 };
+
+const nuevaNotificacion = (titulo: string, detalle: string): Notificacion => ({
+  id: `nt${Date.now()}${Math.random().toString(36).slice(2, 6)}`,
+  titulo,
+  detalle,
+  fecha: new Date().toISOString(),
+  leida: false,
+});
 
 export function AppProvider({ children }: { children: ReactNode }) {
   const [state, setState] = useState<Persist>(inicial);
@@ -109,7 +160,14 @@ export function AppProvider({ children }: { children: ReactNode }) {
       salir: () => setState((s) => ({ ...s, usuario: null })),
       productos: state.productos,
       agregarProducto: (p) =>
-        setState((s) => ({ ...s, productos: [{ ...p, id: `n${Date.now()}` }, ...s.productos] })),
+        setState((s) => ({
+          ...s,
+          productos: [{ ...p, id: `n${Date.now()}` }, ...s.productos],
+          notificaciones: [
+            nuevaNotificacion("Producto publicado", `"${p.nombre}" ya está visible en el catálogo.`),
+            ...s.notificaciones,
+          ],
+        })),
       actualizarProducto: (id, p) =>
         setState((s) => ({
           ...s,
@@ -162,22 +220,104 @@ export function AppProvider({ children }: { children: ReactNode }) {
           estado: "Pedido recibido",
           comprador: state.usuario?.nombre ?? "Invitado",
         };
-        setState((s) => ({ ...s, pedidos: [pedido, ...s.pedidos], carrito: [] }));
+        setState((s) => ({
+          ...s,
+          pedidos: [pedido, ...s.pedidos],
+          carrito: [],
+          notificaciones: [
+            nuevaNotificacion(
+              "Pedido confirmado",
+              `Tu pedido ${pedido.id} fue recibido y pronto pasará a preparación.`,
+            ),
+            ...s.notificaciones,
+          ],
+        }));
         return pedido;
       },
       avanzarPedido: (id) =>
+        setState((s) => {
+          const pedido = s.pedidos.find((p) => p.id === id);
+          if (!pedido) return s;
+          const siguiente =
+            estadosPedido[
+              Math.min(estadosPedido.indexOf(pedido.estado) + 1, estadosPedido.length - 1)
+            ] ?? "Entregado";
+          if (siguiente === pedido.estado) return s;
+          return {
+            ...s,
+            pedidos: s.pedidos.map((p) => (p.id === id ? { ...p, estado: siguiente } : p)),
+            notificaciones: [
+              nuevaNotificacion("Actualización de pedido", `${pedido.id} ahora está: ${siguiente}.`),
+              ...s.notificaciones,
+            ],
+          };
+        }),
+      favoritos: state.favoritos,
+      toggleFavorito: (productoId) =>
         setState((s) => ({
           ...s,
-          pedidos: s.pedidos.map((p) =>
-            p.id === id
-              ? {
-                  ...p,
-                  estado:
-                    estadosPedido[Math.min(estadosPedido.indexOf(p.estado) + 1, estadosPedido.length - 1)] ??
-                    "Entregado",
-                }
-              : p,
-          ),
+          favoritos: s.favoritos.includes(productoId)
+            ? s.favoritos.filter((f) => f !== productoId)
+            : [...s.favoritos, productoId],
+        })),
+      resenas: state.resenas,
+      agregarResena: (r) =>
+        setState((s) => ({
+          ...s,
+          resenas: [{ ...r, id: `r${Date.now()}`, fecha: new Date().toISOString() }, ...s.resenas],
+        })),
+      conversaciones: state.conversaciones,
+      iniciarConversacion: (artesanoId, artesanoNombre, producto) => {
+        const comprador = state.usuario?.nombre ?? "Invitado";
+        const existente = state.conversaciones.find(
+          (c) =>
+            c.artesanoId === artesanoId &&
+            c.comprador === comprador &&
+            c.productoId === producto?.id,
+        );
+        if (existente) return existente.id;
+        const id = `c${Date.now()}`;
+        setState((s) => ({
+          ...s,
+          conversaciones: [
+            {
+              id,
+              artesanoId,
+              artesanoNombre,
+              productoId: producto?.id,
+              productoNombre: producto?.nombre,
+              comprador,
+              mensajes: [],
+            },
+            ...s.conversaciones,
+          ],
+        }));
+        return id;
+      },
+      enviarMensaje: (conversacionId, de, texto) =>
+        setState((s) => {
+          const conv = s.conversaciones.find((c) => c.id === conversacionId);
+          if (!conv) return s;
+          const mensaje: Mensaje = { de, texto, fecha: new Date().toISOString() };
+          return {
+            ...s,
+            conversaciones: s.conversaciones.map((c) =>
+              c.id === conversacionId ? { ...c, mensajes: [...c.mensajes, mensaje] } : c,
+            ),
+            notificaciones: [
+              nuevaNotificacion(
+                "Nuevo mensaje",
+                `${de === "comprador" ? conv.comprador : conv.artesanoNombre}: “${texto.slice(0, 60)}${texto.length > 60 ? "…" : ""}”`,
+              ),
+              ...s.notificaciones,
+            ],
+          };
+        }),
+      notificaciones: state.notificaciones,
+      marcarNotificacionesLeidas: () =>
+        setState((s) => ({
+          ...s,
+          notificaciones: s.notificaciones.map((n) => ({ ...n, leida: true })),
         })),
     }),
     [state],
