@@ -6,12 +6,12 @@ import { ProductCard } from "@/components/ProductCard";
 import { artesanos, categorias, ubicaciones } from "@/lib/data";
 import { useApp } from "@/lib/store";
 
-type Busqueda = { categoria?: string; q?: string };
+type Busqueda = { categoria?: string | undefined; q?: string | undefined };
 
 export const Route = createFileRoute("/explorar")({
   validateSearch: (search: Record<string, unknown>): Busqueda => ({
-    categoria: typeof search.categoria === "string" ? search.categoria : undefined,
-    q: typeof search.q === "string" ? search.q : undefined,
+    categoria: typeof search['categoria'] === "string" ? (search['categoria'] as string) : undefined,
+    q: typeof search['q'] === "string" ? (search['q'] as string) : undefined,
   }),
   head: () => ({
     meta: [
