@@ -5,8 +5,8 @@ export type Usuario = {
   nombre: string;
   correo: string;
   tipo: "comprador" | "artesano";
-  ubicacion?: string;
-  historia?: string;
+  ubicacion?: string | undefined;
+  historia?: string | undefined;
 };
 
 export type ItemCarrito = { productoId: string; cantidad: number };
@@ -173,7 +173,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
               ? {
                   ...p,
                   estado:
-                    estadosPedido[Math.min(estadosPedido.indexOf(p.estado) + 1, estadosPedido.length - 1)],
+                    estadosPedido[Math.min(estadosPedido.indexOf(p.estado) + 1, estadosPedido.length - 1)] ??
+                    "Entregado",
                 }
               : p,
           ),
