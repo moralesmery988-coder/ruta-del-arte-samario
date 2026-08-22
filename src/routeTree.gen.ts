@@ -13,7 +13,9 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as CarritoRouteImport } from './routes/carrito'
 import { Route as ExplorarRouteImport } from './routes/explorar'
+import { Route as FavoritosRouteImport } from './routes/favoritos'
 import { Route as MapaRouteImport } from './routes/mapa'
+import { Route as MensajesRouteImport } from './routes/mensajes'
 import { Route as PanelRouteImport } from './routes/panel'
 import { Route as PedidosRouteImport } from './routes/pedidos'
 import { Route as PerfilRouteImport } from './routes/perfil'
@@ -40,9 +42,19 @@ const ExplorarRoute = ExplorarRouteImport.update({
   path: '/explorar',
   getParentRoute: () => rootRouteImport,
 } as any)
+const FavoritosRoute = FavoritosRouteImport.update({
+  id: '/favoritos',
+  path: '/favoritos',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const MapaRoute = MapaRouteImport.update({
   id: '/mapa',
   path: '/mapa',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const MensajesRoute = MensajesRouteImport.update({
+  id: '/mensajes',
+  path: '/mensajes',
   getParentRoute: () => rootRouteImport,
 } as any)
 const PanelRoute = PanelRouteImport.update({
@@ -76,7 +88,9 @@ export interface FileRoutesByFullPath {
   '/auth': typeof AuthRoute
   '/carrito': typeof CarritoRoute
   '/explorar': typeof ExplorarRoute
+  '/favoritos': typeof FavoritosRoute
   '/mapa': typeof MapaRoute
+  '/mensajes': typeof MensajesRoute
   '/panel': typeof PanelRoute
   '/pedidos': typeof PedidosRoute
   '/perfil': typeof PerfilRoute
@@ -88,7 +102,9 @@ export interface FileRoutesByTo {
   '/auth': typeof AuthRoute
   '/carrito': typeof CarritoRoute
   '/explorar': typeof ExplorarRoute
+  '/favoritos': typeof FavoritosRoute
   '/mapa': typeof MapaRoute
+  '/mensajes': typeof MensajesRoute
   '/panel': typeof PanelRoute
   '/pedidos': typeof PedidosRoute
   '/perfil': typeof PerfilRoute
@@ -101,7 +117,9 @@ export interface FileRoutesById {
   '/auth': typeof AuthRoute
   '/carrito': typeof CarritoRoute
   '/explorar': typeof ExplorarRoute
+  '/favoritos': typeof FavoritosRoute
   '/mapa': typeof MapaRoute
+  '/mensajes': typeof MensajesRoute
   '/panel': typeof PanelRoute
   '/pedidos': typeof PedidosRoute
   '/perfil': typeof PerfilRoute
@@ -115,7 +133,9 @@ export interface FileRouteTypes {
     | '/auth'
     | '/carrito'
     | '/explorar'
+    | '/favoritos'
     | '/mapa'
+    | '/mensajes'
     | '/panel'
     | '/pedidos'
     | '/perfil'
@@ -127,7 +147,9 @@ export interface FileRouteTypes {
     | '/auth'
     | '/carrito'
     | '/explorar'
+    | '/favoritos'
     | '/mapa'
+    | '/mensajes'
     | '/panel'
     | '/pedidos'
     | '/perfil'
@@ -139,7 +161,9 @@ export interface FileRouteTypes {
     | '/auth'
     | '/carrito'
     | '/explorar'
+    | '/favoritos'
     | '/mapa'
+    | '/mensajes'
     | '/panel'
     | '/pedidos'
     | '/perfil'
@@ -152,7 +176,9 @@ export interface RootRouteChildren {
   AuthRoute: typeof AuthRoute
   CarritoRoute: typeof CarritoRoute
   ExplorarRoute: typeof ExplorarRoute
+  FavoritosRoute: typeof FavoritosRoute
   MapaRoute: typeof MapaRoute
+  MensajesRoute: typeof MensajesRoute
   PanelRoute: typeof PanelRoute
   PedidosRoute: typeof PedidosRoute
   PerfilRoute: typeof PerfilRoute
@@ -190,11 +216,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ExplorarRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/favoritos': {
+      id: '/favoritos'
+      path: '/favoritos'
+      fullPath: '/favoritos'
+      preLoaderRoute: typeof FavoritosRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/mapa': {
       id: '/mapa'
       path: '/mapa'
       fullPath: '/mapa'
       preLoaderRoute: typeof MapaRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/mensajes': {
+      id: '/mensajes'
+      path: '/mensajes'
+      fullPath: '/mensajes'
+      preLoaderRoute: typeof MensajesRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/panel': {
@@ -240,7 +280,9 @@ const rootRouteChildren: RootRouteChildren = {
   AuthRoute: AuthRoute,
   CarritoRoute: CarritoRoute,
   ExplorarRoute: ExplorarRoute,
+  FavoritosRoute: FavoritosRoute,
   MapaRoute: MapaRoute,
+  MensajesRoute: MensajesRoute,
   PanelRoute: PanelRoute,
   PedidosRoute: PedidosRoute,
   PerfilRoute: PerfilRoute,
