@@ -1,8 +1,8 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { Minus, Plus, ShoppingBag, Trash2 } from "lucide-react";
+import { Minus, Plus, RotateCcw, ShieldCheck, ShoppingBag, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { AppShell } from "@/components/AppShell";
-import { formatoCOP } from "@/lib/data";
+import { formatoCOP, metodosPago } from "@/lib/data";
 import { useApp } from "@/lib/store";
 
 export const Route = createFileRoute("/carrito")({
@@ -115,6 +115,25 @@ function Carrito() {
               >
                 Confirmar pedido
               </button>
+              <div className="mt-4 border-t border-border pt-4">
+                <p className="inline-flex items-center gap-2 text-xs font-semibold">
+                  <ShieldCheck className="h-4 w-4 text-accent" /> Compra protegida
+                </p>
+                <p className="mt-1.5 inline-flex items-start gap-2 text-xs leading-relaxed text-muted-foreground">
+                  <RotateCcw className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+                  Devoluciones hasta 15 días después de la entrega.
+                </p>
+                <div className="mt-2.5 flex flex-wrap gap-1.5">
+                  {metodosPago.map((m) => (
+                    <span
+                      key={m}
+                      className="rounded-full border border-border bg-card px-2.5 py-1 text-[11px] text-muted-foreground"
+                    >
+                      {m}
+                    </span>
+                  ))}
+                </div>
+              </div>
             </div>
           </>
         )}
