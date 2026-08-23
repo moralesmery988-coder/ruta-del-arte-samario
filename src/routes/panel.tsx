@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { Pencil, Plus, Trash2 } from "lucide-react";
+import { Minus, Pencil, Plus, Send, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 import { AppShell } from "@/components/AppShell";
@@ -21,7 +21,7 @@ export const Route = createFileRoute("/panel")({
 const claves = Object.keys(imagenes);
 
 function Panel() {
-  const { usuario, productos, agregarProducto, actualizarProducto, eliminarProducto, pedidos } = useApp();
+  const { usuario, productos, agregarProducto, actualizarProducto, eliminarProducto, pedidos, conversaciones, enviarMensaje } = useApp();
   const [form, setForm] = useState({
     nombre: "",
     precio: "",
@@ -185,12 +185,29 @@ function Panel() {
               <ul className="mt-3 space-y-3">
                 {mios.map((p) => (
                   <li key={p.id} className="flex items-center gap-3 rounded-2xl border border-border bg-card p-3">
-                    <img src={p.imagen} alt={p.nombre} loading="lazy" className="h-14 w-14 rounded-xl object-cover" />
-                    <div className="flex-1">
-                      <p className="text-sm font-medium">{p.nombre}</p>
-                      <p className="text-xs text-muted-foreground">
-                        {formatoCOP(p.precio)} · {p.disponible} disp.
-                      </p>
+                    <img src={p.imagen} alt={p.nombre} loading="lazy" className="h-14 w-14 shrink-0 rounded-xl object-cover" />
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-sm font-medium">{p.nombre}</p>
+                      <p className="text-xs text-muted-foreground">{formatoCOP(p.precio)}</p>
+                      <div className="mt-1 flex items-center gap-1.5">
+                        <button
+                          onClick={() => actualizarProducto(p.id, { disponible: Math.max(0, p.disponible - 1) })}
+                          aria-label={`Reducir disponibilidad de ${p.nombre}`}
+                          className="flex h-7 w-7 items-center justify-center rounded-full border border-input"
+                        >
+                          <Minus className="h-3 w-3" />
+                        </button>
+                        <span className="min-w-12 text-center text-xs">
+                          {p.disponible > 0 ? `${p.disponible} disp.` : "Agotado"}
+                        </span>
+                        <button
+                          onClick={() => actualizarProducto(p.id, { disponible: p.disponible + 1 })}
+                          aria-label={`Aumentar disponibilidad de ${p.nombre}`}
+                          className="flex h-7 w-7 items-center justify-center rounded-full border border-input"
+                        >
+                          <Plus className="h-3 w-3" />
+                        </button>
+                      </div>
                     </div>
                     <button
                       onClick={() => {
@@ -230,11 +247,24 @@ function Panel() {
             ) : (
               <ul className="mt-3 space-y-2">
                 {pedidos.map((p) => (
-                  <li key={p.id} className="flex items-center justify-between rounded-2xl border border-border bg-card p-3 text-sm">
+                  <li key={p.id} className="flex items-center justify-between gap-2 rounded-2xl border border-border bg-card p-3 text-sm">
                     <span className="font-medium">{p.id}</span>
                     <span className="text-muted-foreground">{p.estado}</span>
                     <span>{formatoCOP(p.total)}</span>
                   </li>
+                ))}
+              </ul>
+            )}
+
+            <h2 className="mt-8 font-display text-xl font-bold">Mensajes de compradores</h2>
+            {conversaciones.length === 0 ? (
+              <p className="mt-3 text-sm text-muted-foreground">
+                Sin mensajes por ahora. Cuando un comprador te escriba desde un producto, aparecerá aquí.
+              </p>
+            ) : (
+              <ul className="mt-3 space-y-3">
+                {conversaciones.map((c) => (
+                  <ConversacionPanel key={c.id} conversacion={c} onResponder={(texto) => enviarMensaje(c.id, "artesano", texto)} />
                 ))}
               </ul>
             )}
