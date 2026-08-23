@@ -4,7 +4,7 @@ import { useState } from "react";
 import { toast } from "sonner";
 import { AppShell } from "@/components/AppShell";
 import { categorias, formatoCOP, imagenes, ubicaciones, type Categoria } from "@/lib/data";
-import { useApp } from "@/lib/store";
+import { useApp, type Conversacion } from "@/lib/store";
 
 export const Route = createFileRoute("/panel")({
   head: () => ({
@@ -272,5 +272,66 @@ function Panel() {
         </section>
       </div>
     </AppShell>
+  );
+}
+
+function ConversacionPanel({
+  conversacion,
+  onResponder,
+}: {
+  conversacion: Conversacion;
+  onResponder: (texto: string) => void;
+}) {
+  const [respuesta, setRespuesta] = useState("");
+  const ultimos = conversacion.mensajes.slice(-3);
+
+  const enviar = (e: React.FormEvent) => {
+    e.preventDefault();
+    const limpio = respuesta.trim();
+    if (!limpio) return;
+    onResponder(limpio);
+    setRespuesta("");
+    toast.success("Respuesta enviada");
+  };
+
+  return (
+    <li className="rounded-2xl border border-border bg-card p-4">
+      <div className="flex flex-wrap items-center justify-between gap-1">
+        <p className="text-sm font-semibold">{conversacion.comprador}</p>
+        {conversacion.productoNombre && (
+          <p className="text-[11px] uppercase tracking-wide text-accent">{conversacion.productoNombre}</p>
+        )}
+      </div>
+      {ultimos.length > 0 && (
+        <ul className="mt-2.5 space-y-1.5">
+          {ultimos.map((m, i) => (
+            <li
+              key={i}
+              className={`rounded-xl px-3 py-2 text-xs leading-snug ${
+                m.de === "artesano" ? "bg-secondary text-secondary-foreground" : "bg-muted text-foreground"
+              }`}
+            >
+              <span className="font-semibold">{m.de === "artesano" ? "Tú" : conversacion.comprador}:</span> {m.texto}
+            </li>
+          ))}
+        </ul>
+      )}
+      <form onSubmit={enviar} className="mt-3 flex gap-2">
+        <input
+          value={respuesta}
+          onChange={(e) => setRespuesta(e.target.value)}
+          placeholder="Responder al comprador…"
+          aria-label={`Responder a ${conversacion.comprador}`}
+          className="flex-1 rounded-full border border-input bg-background px-4 py-2 text-sm outline-none focus:ring-2 focus:ring-ring"
+        />
+        <button
+          type="submit"
+          aria-label="Enviar respuesta"
+          className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-accent text-accent-foreground"
+        >
+          <Send className="h-4 w-4" />
+        </button>
+      </form>
+    </li>
   );
 }
