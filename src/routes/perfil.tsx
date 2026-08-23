@@ -1,5 +1,5 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { LogOut, Package, Store, UserRound } from "lucide-react";
+import { Heart, LogOut, MessageCircle, Package, Store, UserRound } from "lucide-react";
 import { AppShell } from "@/components/AppShell";
 import { useApp } from "@/lib/store";
 
@@ -16,7 +16,7 @@ export const Route = createFileRoute("/perfil")({
 });
 
 function Perfil() {
-  const { usuario, salir, pedidos } = useApp();
+  const { usuario, salir, pedidos, favoritos, conversaciones } = useApp();
   const navigate = useNavigate();
 
   if (!usuario) {
@@ -60,6 +60,16 @@ function Perfil() {
             <Package className="h-5 w-5 text-accent" />
             <span className="flex-1 text-sm font-medium">Mis pedidos</span>
             <span className="text-xs text-muted-foreground">{pedidos.length}</span>
+          </Link>
+          <Link to="/favoritos" className="flex items-center gap-3 rounded-2xl border border-border bg-card p-4">
+            <Heart className="h-5 w-5 text-accent" />
+            <span className="flex-1 text-sm font-medium">Mis favoritos</span>
+            <span className="text-xs text-muted-foreground">{favoritos.length}</span>
+          </Link>
+          <Link to="/mensajes" className="flex items-center gap-3 rounded-2xl border border-border bg-card p-4">
+            <MessageCircle className="h-5 w-5 text-accent" />
+            <span className="flex-1 text-sm font-medium">Mensajes con artesanos</span>
+            <span className="text-xs text-muted-foreground">{conversaciones.length}</span>
           </Link>
           {usuario.tipo === "artesano" && (
             <Link to="/panel" className="flex items-center gap-3 rounded-2xl border border-border bg-card p-4">

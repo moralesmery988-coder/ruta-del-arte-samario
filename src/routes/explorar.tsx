@@ -30,6 +30,7 @@ function Explorar() {
   const navigate = useNavigate();
   const [precioMax, setPrecioMax] = useState(350000);
   const [ubicacion, setUbicacion] = useState("todas");
+  const [soloDisponibles, setSoloDisponibles] = useState(false);
   const [filtros, setFiltros] = useState(false);
 
   const texto = (q ?? "").toLowerCase();
@@ -39,7 +40,8 @@ function Explorar() {
       !texto || p.nombre.toLowerCase().includes(texto) || (a?.nombre.toLowerCase().includes(texto) ?? false);
     const coincideCategoria = !categoria || p.categoria === categoria;
     const coincideUbicacion = ubicacion === "todas" || a?.ubicacion === ubicacion;
-    return coincideTexto && coincideCategoria && p.precio <= precioMax && coincideUbicacion;
+    const coincideDisponibilidad = !soloDisponibles || p.disponible > 0;
+    return coincideTexto && coincideCategoria && p.precio <= precioMax && coincideUbicacion && coincideDisponibilidad;
   });
 
   const artesanosCoincidentes = texto
@@ -98,6 +100,15 @@ function Explorar() {
 
         {filtros && (
           <div className="mt-4 grid gap-4 rounded-2xl border border-border bg-card p-4 sm:grid-cols-2">
+            <label className="flex items-center gap-3 rounded-2xl border border-border bg-background p-3 text-sm font-medium sm:col-span-2">
+              <input
+                type="checkbox"
+                checked={soloDisponibles}
+                onChange={(e) => setSoloDisponibles(e.target.checked)}
+                className="h-5 w-5 accent-[oklch(0.62_0.15_45)]"
+              />
+              Mostrar solo productos disponibles
+            </label>
             <label className="text-sm">
               Precio máximo: <span className="font-semibold">${precioMax.toLocaleString("es-CO")}</span>
               <input
