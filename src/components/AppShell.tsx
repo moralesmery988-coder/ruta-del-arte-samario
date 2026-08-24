@@ -162,10 +162,10 @@ export function AppShell({ children }: { children: ReactNode }) {
             </div>
           </div>
           <div>
-            <p className="font-display font-bold text-foreground">Ayuda y contacto</p>
+            <p className="font-display font-bold text-foreground">Ayuda</p>
             <p className="mt-2 text-xs leading-relaxed text-muted-foreground">
-              Escríbenos a hola@rutadelartesamario.co o al +57 300 555 0000. Resolvemos dudas sobre pedidos, envíos y
-              devoluciones.
+              Desde tu perfil puedes seguir tus pedidos, chatear con los artesanos y resolver dudas sobre envíos y
+              devoluciones directamente en la plataforma.
             </p>
           </div>
           <div>
