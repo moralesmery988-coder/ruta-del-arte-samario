@@ -1,24 +1,34 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { Minus, Pencil, Plus, Send, Trash2 } from "lucide-react";
+import { ImagePlus, Minus, Pencil, Plus, Send, Trash2, X } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 import { AppShell } from "@/components/AppShell";
 import { categorias, formatoCOP, imagenes, ubicaciones, type Categoria } from "@/lib/data";
 import { useApp, type Conversacion } from "@/lib/store";
-
-export const Route = createFileRoute("/panel")({
-  head: () => ({
-    meta: [
-      { title: "Panel de artesano | Ruta del Arte Samario" },
-      { name: "description", content: "Publica productos, edita precios, revisa pedidos y consulta tus ventas." },
-      { property: "og:title", content: "Panel de artesano" },
-      { property: "og:description", content: "Herramientas para vender tus artesanías en línea." },
-    ],
-  }),
-  component: Panel,
-});
-
+...
 const claves = Object.keys(imagenes);
+
+/** Lee un archivo de imagen y la devuelve como data URL reducida (máx. 800px, JPEG). */
+function leerImagen(archivo: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const lector = new FileReader();
+    lector.onerror = () => reject(new Error("No se pudo leer la imagen"));
+    lector.onload = () => {
+      const img = new Image();
+      img.onerror = () => reject(new Error("Archivo de imagen no válido"));
+      img.onload = () => {
+        const escala = Math.min(1, 800 / Math.max(img.width, img.height));
+        const canvas = document.createElement("canvas");
+        canvas.width = Math.round(img.width * escala);
+        canvas.height = Math.round(img.height * escala);
+        canvas.getContext("2d")!.drawImage(img, 0, 0, canvas.width, canvas.height);
+        resolve(canvas.toDataURL("image/jpeg", 0.75));
+      };
+      img.src = String(lector.result);
+    };
+    lector.readAsDataURL(archivo);
+  });
+}
 
 function Panel() {
   const { usuario, productos, agregarProducto, actualizarProducto, eliminarProducto, pedidos, conversaciones, enviarMensaje } = useApp();
@@ -30,6 +40,7 @@ function Panel() {
     imagen: claves[0]!,
     disponible: "1",
   });
+  const [fotoSubida, setFotoSubida] = useState<string | null>(null);
   const [editando, setEditando] = useState<string | null>(null);
 
   if (!usuario || usuario.tipo !== "artesano") {
