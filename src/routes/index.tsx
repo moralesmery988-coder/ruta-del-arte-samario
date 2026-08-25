@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { ArrowRight, Sparkles } from "lucide-react";
+import { ArrowRight, MapPin, Sparkles } from "lucide-react";
 import hero from "@/assets/hero-santa-marta.jpg";
 import logo from "@/assets/logo.png.asset.json";
 import { AppShell } from "@/components/AppShell";
@@ -86,7 +86,25 @@ function Index() {
         </div>
       </section>
 
-      <section className="mx-auto max-w-6xl px-5 pb-4">
+      <section className="mx-auto max-w-6xl px-5">
+        <Link
+          to="/mapa"
+          className="flex items-center gap-4 rounded-3xl border border-border bg-card p-5 shadow-card transition-colors hover:bg-secondary"
+        >
+          <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-accent text-accent-foreground">
+            <MapPin className="h-7 w-7" />
+          </span>
+          <span className="min-w-0 flex-1">
+            <span className="block font-display text-lg font-bold">Mapa de la ruta artesanal</span>
+            <span className="mt-0.5 block text-sm text-muted-foreground">
+              Ubica los talleres y mercados de Santa Marta y sigue el recorrido sugerido con indicaciones para llegar.
+            </span>
+          </span>
+          <ArrowRight className="h-5 w-5 shrink-0 text-muted-foreground" />
+        </Link>
+      </section>
+
+      <section className="mx-auto max-w-6xl px-5 pb-4 pt-10">
         <div className="flex items-end justify-between">
           <h2 className="font-display text-2xl font-bold">Artesanías destacadas</h2>
           <Link to="/explorar" className="text-sm font-medium text-primary">

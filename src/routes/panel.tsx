@@ -261,14 +261,16 @@ function Panel() {
                     <button
                       onClick={() => {
                         setEditando(p.id);
+                        const clave = claves.find((k) => imagenes[k] === p.imagen);
                         setForm({
                           nombre: p.nombre,
                           precio: String(p.precio),
                           categoria: p.categoria,
                           descripcion: p.descripcion,
-                          imagen: claves.find((k) => imagenes[k] === p.imagen) ?? claves[0]!,
+                          imagen: clave ?? claves[0]!,
                           disponible: String(p.disponible),
                         });
+                        setFotoSubida(clave ? null : p.imagen);
                       }}
                       aria-label="Editar"
                       className="text-muted-foreground"
