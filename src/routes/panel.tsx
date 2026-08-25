@@ -5,7 +5,19 @@ import { toast } from "sonner";
 import { AppShell } from "@/components/AppShell";
 import { categorias, formatoCOP, imagenes, ubicaciones, type Categoria } from "@/lib/data";
 import { useApp, type Conversacion } from "@/lib/store";
-...
+
+export const Route = createFileRoute("/panel")({
+  head: () => ({
+    meta: [
+      { title: "Panel de artesano | Ruta del Arte Samario" },
+      { name: "description", content: "Publica productos con tus propias fotos y precios, revisa pedidos y consulta tus ventas." },
+      { property: "og:title", content: "Panel de artesano" },
+      { property: "og:description", content: "Herramientas para vender tus artesanías en línea." },
+    ],
+  }),
+  component: Panel,
+});
+
 const claves = Object.keys(imagenes);
 
 /** Lee un archivo de imagen y la devuelve como data URL reducida (máx. 800px, JPEG). */
