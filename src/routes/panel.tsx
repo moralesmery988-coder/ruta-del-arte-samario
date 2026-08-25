@@ -5,7 +5,19 @@ import { toast } from "sonner";
 import { AppShell } from "@/components/AppShell";
 import { categorias, formatoCOP, imagenes, ubicaciones, type Categoria } from "@/lib/data";
 import { useApp, type Conversacion } from "@/lib/store";
-...
+
+export const Route = createFileRoute("/panel")({
+  head: () => ({
+    meta: [
+      { title: "Panel de artesano | Ruta del Arte Samario" },
+      { name: "description", content: "Publica productos con tus propias fotos y precios, revisa pedidos y consulta tus ventas." },
+      { property: "og:title", content: "Panel de artesano" },
+      { property: "og:description", content: "Herramientas para vender tus artesanías en línea." },
+    ],
+  }),
+  component: Panel,
+});
+
 const claves = Object.keys(imagenes);
 
 /** Lee un archivo de imagen y la devuelve como data URL reducida (máx. 800px, JPEG). */
@@ -73,7 +85,7 @@ function Panel() {
       precio: Number(form.precio),
       categoria: form.categoria,
       descripcion: form.descripcion,
-      imagen: imagenes[form.imagen]!,
+      imagen: fotoSubida ?? imagenes[form.imagen]!,
       disponible: Number(form.disponible),
       artesanoId: usuario.correo,
     };
@@ -86,6 +98,20 @@ function Panel() {
       toast.success("Producto publicado");
     }
     setForm({ ...form, nombre: "", precio: "", descripcion: "", disponible: "1" });
+    setFotoSubida(null);
+  };
+
+  const subirFoto = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const archivo = e.target.files?.[0];
+    e.target.value = "";
+    if (!archivo) return;
+    try {
+      const dataUrl = await leerImagen(archivo);
+      setFotoSubida(dataUrl);
+      toast.success("Foto lista", { description: "Se usará esta imagen al publicar." });
+    } catch {
+      toast.error("No se pudo cargar la foto", { description: "Intenta con otra imagen (JPG o PNG)." });
+    }
   };
 
   return (
@@ -166,21 +192,45 @@ function Panel() {
                 className={campo}
               />
             </label>
-            <p className="mt-3 text-sm font-medium">Fotografía</p>
-            <div className="mt-2 flex gap-2 overflow-x-auto">
-              {claves.map((k) => (
-                <button
-                  type="button"
-                  key={k}
-                  onClick={() => setForm({ ...form, imagen: k })}
-                  className={`h-16 w-16 shrink-0 overflow-hidden rounded-xl border-2 ${
-                    form.imagen === k ? "border-accent" : "border-transparent"
-                  }`}
-                >
-                  <img src={imagenes[k]} alt={k} loading="lazy" className="h-full w-full object-cover" />
-                </button>
-              ))}
+            <p className="mt-3 text-sm font-medium">Fotografía del producto</p>
+            <div className="mt-2 flex items-center gap-3">
+              <label className="inline-flex cursor-pointer items-center gap-2 rounded-full bg-secondary px-4 py-2.5 text-sm font-semibold text-secondary-foreground">
+                <ImagePlus className="h-4 w-4" /> Subir mi foto
+                <input type="file" accept="image/*" onChange={subirFoto} className="sr-only" aria-label="Subir foto del producto" />
+              </label>
+              {fotoSubida && (
+                <span className="relative">
+                  <img src={fotoSubida} alt="Foto subida del producto" className="h-16 w-16 rounded-xl border-2 border-accent object-cover" />
+                  <button
+                    type="button"
+                    onClick={() => setFotoSubida(null)}
+                    aria-label="Quitar foto subida"
+                    className="absolute -right-1.5 -top-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-accent text-accent-foreground"
+                  >
+                    <X className="h-3 w-3" />
+                  </button>
+                </span>
+              )}
             </div>
+            {!fotoSubida && (
+              <>
+                <p className="mt-3 text-xs text-muted-foreground">O elige una imagen de la galería:</p>
+                <div className="mt-2 flex gap-2 overflow-x-auto">
+                  {claves.map((k) => (
+                    <button
+                      type="button"
+                      key={k}
+                      onClick={() => setForm({ ...form, imagen: k })}
+                      className={`h-16 w-16 shrink-0 overflow-hidden rounded-xl border-2 ${
+                        form.imagen === k ? "border-accent" : "border-transparent"
+                      }`}
+                    >
+                      <img src={imagenes[k]} alt={k} loading="lazy" className="h-full w-full object-cover" />
+                    </button>
+                  ))}
+                </div>
+              </>
+            )}
             <button className="mt-5 inline-flex w-full items-center justify-center gap-2 rounded-full bg-accent py-3 text-sm font-semibold text-accent-foreground">
               <Plus className="h-4 w-4" /> {editando ? "Guardar cambios" : "Publicar producto"}
             </button>
@@ -223,14 +273,16 @@ function Panel() {
                     <button
                       onClick={() => {
                         setEditando(p.id);
+                        const clave = claves.find((k) => imagenes[k] === p.imagen);
                         setForm({
                           nombre: p.nombre,
                           precio: String(p.precio),
                           categoria: p.categoria,
                           descripcion: p.descripcion,
-                          imagen: claves.find((k) => imagenes[k] === p.imagen) ?? claves[0]!,
+                          imagen: clave ?? claves[0]!,
                           disponible: String(p.disponible),
                         });
+                        setFotoSubida(clave ? null : p.imagen);
                       }}
                       aria-label="Editar"
                       className="text-muted-foreground"

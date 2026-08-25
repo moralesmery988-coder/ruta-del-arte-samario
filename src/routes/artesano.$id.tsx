@@ -1,5 +1,5 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { BadgeCheck, Hammer, Mail, MapPin, MessageCircle, Phone } from "lucide-react";
+import { BadgeCheck, Hammer, MapPin, MessageCircle } from "lucide-react";
 import { AppShell } from "@/components/AppShell";
 import { ProductCard } from "@/components/ProductCard";
 import { artesanos } from "@/lib/data";
@@ -98,21 +98,6 @@ function PerfilArtesano() {
             <Hammer className="h-5 w-5 text-accent" /> Su proceso de elaboración
           </h2>
           <p className="mt-3 text-[15px] leading-relaxed text-muted-foreground">{artesano.proceso}</p>
-        </section>
-
-        <section className="mt-6 grid gap-3 sm:grid-cols-2">
-          <a
-            href={`tel:${artesano.telefono}`}
-            className="inline-flex items-center gap-3 rounded-2xl border border-border bg-card p-4 text-sm"
-          >
-            <Phone className="h-4 w-4 shrink-0 text-accent" /> {artesano.telefono}
-          </a>
-          <a
-            href={`mailto:${artesano.correo}`}
-            className="inline-flex items-center gap-3 rounded-2xl border border-border bg-card p-4 text-sm"
-          >
-            <Mail className="h-4 w-4 shrink-0 text-accent" /> <span className="truncate">{artesano.correo}</span>
-          </a>
         </section>
 
         <section className="mt-10">
