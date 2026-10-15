@@ -1,4 +1,91 @@
-# Ruta Del Arte Samario
+Actualización integral de Ruta del Arte Samario
+
+Quiero evolucionar mi aplicación Ruta del Arte Samario hacia una plataforma digital de alto impacto para la promoción, comercialización y preservación de la artesanía y la cultura de Santa Marta, Colombia.
+
+El objetivo es convertirla en un marketplace artesanal moderno, intuitivo, seguro y diferenciador, que permita a los artesanos gestionar sus tiendas digitales de manera autónoma y conectar directamente con sus compradores.
+
+1. Panel de administración para artesanos
+
+- Crear un panel privado para cada artesano registrado.
+- Permitir publicar, editar y eliminar productos.
+- Permitir subir varias fotografías y videos por producto.
+- Permitir modificar precios, descripciones, materiales, dimensiones, disponibilidad e inventario.
+- Permitir marcar productos como agotados o disponibles.
+- Solicitar confirmación antes de eliminar publicaciones.
+
+2. Sistema de publicaciones
+
+- Crear una sección llamada “Mi taller”.
+- Permitir compartir fotografías, videos cortos, nuevas creaciones y procesos artesanales.
+- Mostrar las publicaciones en un espacio visual atractivo.
+- Permitir acceder al perfil y catálogo del artesano desde cada publicación.
+- Incorporar controles de privacidad y moderación.
+
+3. Sistema de códigos QR
+
+- Generar un código QR único para cada artesano.
+- Generar un QR individual para cada producto.
+- Dirigir cada código a una página pública y permanente del perfil o producto correspondiente.
+- Permitir visualizar, descargar e imprimir el QR.
+- Diseñar tarjetas y etiquetas con el logotipo de Ruta del Arte Samario.
+- Asegurar que los códigos dirijan a páginas funcionales y públicas, sin exigir iniciar sesión para consultar el catálogo.
+
+4. Tiendas digitales personalizadas
+
+- Crear un perfil comercial para cada artesano.
+- Incluir fotografía, nombre, descripción, historia, catálogo y datos de contacto autorizados.
+- Mostrar todos sus productos disponibles.
+- Incorporar calificaciones y reseñas verificadas cuando exista una compra confirmada.
+
+5. Chat entre comprador y vendedor
+
+- Crear conversaciones privadas entre usuarios y artesanos.
+- Permitir enviar mensajes y consultar el historial.
+- Mostrar notificaciones de mensajes nuevos.
+- Relacionar cada conversación con el producto correspondiente cuando sea posible.
+
+6. Seguimiento de pedidos
+
+- Incorporar estados de pedido: pendiente de confirmación, confirmado, en preparación, enviado y entregado.
+- Permitir que el comprador consulte las actualizaciones desde su cuenta.
+- Permitir que el vendedor actualice el estado de los pedidos que le corresponden.
+- Registrar fechas y notificar los cambios relevantes.
+
+7. Herramientas para compradores
+
+- Incorporar búsqueda y filtros avanzados.
+- Añadir favoritos, carrito de compras y recomendaciones.
+- Mostrar precios, disponibilidad y tiempos estimados de entrega.
+- Facilitar el contacto con el vendedor y la consulta del estado de los pedidos.
+
+8. Experiencia cultural diferenciadora
+
+- Crear una sección llamada “Historias que se tejen”.
+- Presentar historias de artesanos, técnicas tradicionales, materiales y significado cultural de sus creaciones.
+- Incorporar un mapa de artesanos y puntos de venta participantes.
+- Permitir que los usuarios descubran productos por tipo de artesanía y tradición cultural.
+
+9. Diseño y experiencia de usuario
+
+- Mantener la identidad visual y el contenido existente de Ruta del Arte Samario.
+- Utilizar una interfaz moderna, elegante, cultural y coherente.
+- Garantizar una experiencia adaptable a celulares, tabletas y computadores.
+- Mejorar accesibilidad, legibilidad, navegación y velocidad de carga.
+
+10. Seguridad y funcionamiento real
+
+- Implementar autenticación y permisos según el tipo de usuario.
+- Garantizar que cada artesano solo pueda administrar sus propios productos y pedidos.
+- Almacenar fotografías y videos en un servicio de archivos adecuado.
+- Persistir los cambios de precios, publicaciones y estados de pedidos en una base de datos.
+- Proteger la información personal y las conversaciones privadas.
+- No utilizar botones decorativos que aparenten funcionar sin ejecutar acciones reales.
+
+Instrucción fundamental: trabaja sobre la aplicación existente, revisa su estructura y reutiliza sus componentes y datos cuando sea posible. No reemplaces innecesariamente las pantallas que ya funcionan. Implementa las nuevas funciones de forma progresiva, conectando la interfaz con la base de datos, el almacenamiento y los permisos correspondientes.
+
+Antes de finalizar, verifica los flujos de registro, publicación, edición de precios, generación y lectura de códigos QR, mensajería y seguimiento de pedidos. Presenta una lista de las funciones implementadas y señala claramente las que requieran configuración adicional.
+
+El resultado debe ser una plataforma funcional, escalable y diferenciadora, que fortalezca la economía artesanal y la identidad cultural de Santa Marta. Ruta Del Arte Samario
 
 Diseña y desarrolla una plataforma digital llamada “Ruta del Arte Samario”, enfocada en promover y comercializar productos artesanales de Santa Marta y la región del Magdalena.
 
