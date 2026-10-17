@@ -1,327 +1,512 @@
-import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
-import { productosBase, resenasBase, type Producto, type Resena } from "./data";
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { imagenes, type Categoria } from "./data";
+
+/** Las imágenes de ejemplo se guardan como clave ("mochila"); las subidas, como URL. */
+export const resolverImagen = (s: string | null | undefined) => (s ? (imagenes[s] ?? s) : imagenes["mochila"]!);
 
 export type Usuario = {
+  id: string;
   nombre: string;
   correo: string;
   tipo: "comprador" | "artesano";
   ubicacion?: string | undefined;
-  historia?: string | undefined;
+  artesanoId?: string | undefined;
 };
 
-export type ItemCarrito = { productoId: string; cantidad: number };
+export type Producto = {
+  id: string;
+  nombre: string;
+  precio: number;
+  categoria: Categoria;
+  artesanoId: string;
+  descripcion: string;
+  imagen: string;
+  imagenes: string[];
+  imagenesRaw: string[];
+  videos: string[];
+  disponible: number;
+  agotado: boolean;
+  destacado: boolean;
+  materiales: string;
+  dimensiones: string;
+  tiempoEntrega: string;
+};
 
-export type EstadoPedido = "Pedido recibido" | "En preparación" | "Enviado" | "Entregado";
+export type Artesano = {
+  id: string;
+  userId: string | null;
+  nombre: string;
+  taller: string;
+  ubicacion: string;
+  descripcion: string;
+  historia: string;
+  proceso: string;
+  tecnica: string;
+  tradicion: string;
+  foto: string;
+  fotoRaw: string;
+  contactoPublico: string;
+  verificado: boolean;
+  coords: { x: number; y: number };
+};
+
+export type Resena = {
+  id: string;
+  productoId: string;
+  autor: string;
+  autorId: string | null;
+  estrellas: number;
+  comentario: string;
+  fecha: string;
+  verificada: boolean;
+};
+
+export type EstadoPedido = "pendiente" | "confirmado" | "preparacion" | "enviado" | "entregado" | "cancelado";
+export const estadosPedido: EstadoPedido[] = ["pendiente", "confirmado", "preparacion", "enviado", "entregado"];
+export const etiquetaEstado: Record<EstadoPedido, string> = {
+  pendiente: "Pendiente de confirmación",
+  confirmado: "Confirmado",
+  preparacion: "En preparación",
+  enviado: "Enviado",
+  entregado: "Entregado",
+  cancelado: "Cancelado",
+};
+export const siguienteEstado = (e: EstadoPedido): EstadoPedido | null => {
+  const i = estadosPedido.indexOf(e);
+  return i >= 0 && i < estadosPedido.length - 1 ? estadosPedido[i + 1]! : null;
+};
 
 export type Pedido = {
   id: string;
+  codigo: string;
   fecha: string;
   items: { productoId: string; nombre: string; precio: number; cantidad: number; imagen: string }[];
   total: number;
   estado: EstadoPedido;
   comprador: string;
+  compradorId: string;
+  artesanoId: string;
+  direccion: string;
+  historial: { estado: EstadoPedido; fecha: string }[];
 };
 
-export const estadosPedido: EstadoPedido[] = [
-  "Pedido recibido",
-  "En preparación",
-  "Enviado",
-  "Entregado",
-];
-
+export type ItemCarrito = { productoId: string; cantidad: number };
 export type RolMensaje = "comprador" | "artesano";
-
-export type Mensaje = { de: RolMensaje; texto: string; fecha: string };
-
+export type Mensaje = { id: string; de: RolMensaje; texto: string; fecha: string };
 export type Conversacion = {
   id: string;
   artesanoId: string;
   artesanoNombre: string;
   productoId?: string | undefined;
   productoNombre?: string | undefined;
+  compradorId: string;
   comprador: string;
   mensajes: Mensaje[];
+  actualizada: string;
+};
+export type Notificacion = { id: string; titulo: string; detalle: string; enlace: string | null; fecha: string; leida: boolean };
+export type Publicacion = {
+  id: string;
+  artesanoId: string;
+  tipo: "foto" | "video";
+  mediaUrl: string;
+  texto: string;
+  oculta: boolean;
+  fecha: string;
 };
 
-export type Notificacion = {
-  id: string;
-  titulo: string;
-  detalle: string;
-  fecha: string;
-  leida: boolean;
-};
+type Resultado = { ok: true } | { ok: false; error: string };
+const fallo = (e: unknown): Resultado => ({ ok: false, error: e instanceof Error ? e.message : String((e as { message?: string })?.message ?? e) });
 
 type Ctx = {
+  cargando: boolean;
   usuario: Usuario | null;
-  registrar: (u: Usuario & { password: string }) => void;
-  entrar: (correo: string, password: string) => boolean;
-  salir: () => void;
+  registrar: (u: { nombre: string; correo: string; password: string; tipo: "comprador" | "artesano"; ubicacion?: string }) => Promise<Resultado & { confirmar?: boolean }>;
+  entrar: (correo: string, password: string) => Promise<Resultado>;
+  recuperar: (correo: string) => Promise<Resultado>;
+  salir: () => Promise<void>;
+  artesanos: Artesano[];
+  miTienda: Artesano | null;
+  actualizarTienda: (d: Partial<Pick<Artesano, "nombre" | "taller" | "ubicacion" | "descripcion" | "historia" | "proceso" | "tecnica" | "tradicion" | "contactoPublico">> & { foto?: string }) => Promise<Resultado>;
   productos: Producto[];
-  agregarProducto: (p: Omit<Producto, "id">) => void;
-  actualizarProducto: (id: string, p: Partial<Producto>) => void;
-  eliminarProducto: (id: string) => void;
+  guardarProducto: (id: string | null, d: {
+    nombre: string; precio: number; categoria: Categoria; descripcion: string; materiales: string; dimensiones: string;
+    tiempoEntrega: string; imagenes: string[]; videos: string[]; disponible: number; agotado: boolean;
+  }) => Promise<Resultado>;
+  actualizarProducto: (id: string, d: { disponible?: number; agotado?: boolean; precio?: number }) => Promise<Resultado>;
+  eliminarProducto: (id: string) => Promise<Resultado>;
+  subirArchivo: (archivo: File) => Promise<string>;
   carrito: ItemCarrito[];
   agregarAlCarrito: (productoId: string, cantidad?: number) => void;
   cambiarCantidad: (productoId: string, cantidad: number) => void;
   quitarDelCarrito: (productoId: string) => void;
   vaciarCarrito: () => void;
   pedidos: Pedido[];
-  confirmarPedido: () => Pedido | null;
-  avanzarPedido: (id: string) => void;
+  confirmarPedido: (direccion: string) => Promise<Resultado & { codigos?: string[] }>;
+  cambiarEstadoPedido: (id: string, estado: EstadoPedido) => Promise<Resultado>;
   favoritos: string[];
-  toggleFavorito: (productoId: string) => void;
+  toggleFavorito: (productoId: string) => Promise<Resultado>;
   resenas: Resena[];
-  agregarResena: (r: Omit<Resena, "id" | "fecha">) => void;
+  agregarResena: (r: { productoId: string; estrellas: number; comentario: string }) => Promise<Resultado>;
   conversaciones: Conversacion[];
-  iniciarConversacion: (
-    artesanoId: string,
-    artesanoNombre: string,
-    producto?: { id: string; nombre: string },
-  ) => string;
-  enviarMensaje: (conversacionId: string, de: RolMensaje, texto: string) => void;
+  iniciarConversacion: (artesanoId: string, producto?: { id: string; nombre: string }) => Promise<string | null>;
+  enviarMensaje: (conversacionId: string, texto: string) => Promise<Resultado>;
   notificaciones: Notificacion[];
-  marcarNotificacionesLeidas: () => void;
+  marcarNotificacionesLeidas: () => Promise<void>;
+  publicaciones: Publicacion[];
+  crearPublicacion: (d: { tipo: "foto" | "video"; mediaUrl: string; texto: string }) => Promise<Resultado>;
+  ocultarPublicacion: (id: string, oculta: boolean) => Promise<Resultado>;
+  eliminarPublicacion: (id: string) => Promise<Resultado>;
+  reportarPublicacion: (id: string, motivo: string) => Promise<Resultado>;
 };
 
 const AppCtx = createContext<Ctx | null>(null);
+const KEY_CARRITO = "ruta-arte-samario-carrito";
 
-const KEY = "ruta-arte-samario";
+/** Reduce una imagen a máx. 1400px en JPEG antes de subirla. */
+async function comprimirImagen(archivo: File): Promise<Blob> {
+  const url = URL.createObjectURL(archivo);
+  try {
+    const img = await new Promise<HTMLImageElement>((res, rej) => {
+      const i = new Image();
+      i.onload = () => res(i);
+      i.onerror = () => rej(new Error("Archivo de imagen no válido"));
+      i.src = url;
+    });
+    const escala = Math.min(1, 1400 / Math.max(img.width, img.height));
+    const canvas = document.createElement("canvas");
+    canvas.width = Math.round(img.width * escala);
+    canvas.height = Math.round(img.height * escala);
+    canvas.getContext("2d")!.drawImage(img, 0, 0, canvas.width, canvas.height);
+    return await new Promise<Blob>((res, rej) => canvas.toBlob((b) => (b ? res(b) : rej(new Error("No se pudo procesar"))), "image/jpeg", 0.82));
+  } finally {
+    URL.revokeObjectURL(url);
+  }
+}
 
-type Persist = {
-  usuario: Usuario | null;
-  cuentas: (Usuario & { password: string })[];
-  productos: Producto[];
-  carrito: ItemCarrito[];
-  pedidos: Pedido[];
-  favoritos: string[];
-  resenas: Resena[];
-  conversaciones: Conversacion[];
-  notificaciones: Notificacion[];
-};
-
-const inicial: Persist = {
-  usuario: null,
-  cuentas: [],
-  productos: productosBase,
-  carrito: [],
-  pedidos: [],
-  favoritos: [],
-  resenas: resenasBase,
-  conversaciones: [],
-  notificaciones: [],
-};
-
-const nuevaNotificacion = (titulo: string, detalle: string): Notificacion => ({
-  id: `nt${Date.now()}${Math.random().toString(36).slice(2, 6)}`,
-  titulo,
-  detalle,
-  fecha: new Date().toISOString(),
-  leida: false,
+/* eslint-disable @typescript-eslint/no-explicit-any */
+const mapArtesano = (a: any): Artesano => ({
+  id: a.id, userId: a.user_id, nombre: a.nombre, taller: a.taller, ubicacion: a.ubicacion, descripcion: a.descripcion,
+  historia: a.historia, proceso: a.proceso, tecnica: a.tecnica, tradicion: a.tradicion, foto: resolverImagen(a.foto),
+  fotoRaw: a.foto, contactoPublico: a.contacto_publico, verificado: a.verificado, coords: { x: a.coord_x, y: a.coord_y },
 });
+const mapProducto = (p: any): Producto => {
+  const imgs = (p.imagenes as string[]).map(resolverImagen);
+  return {
+    id: p.id, nombre: p.nombre, precio: p.precio, categoria: p.categoria, artesanoId: p.artesano_id, descripcion: p.descripcion,
+    imagen: imgs[0] ?? resolverImagen(null), imagenes: imgs.length ? imgs : [resolverImagen(null)], imagenesRaw: p.imagenes,
+    videos: p.videos, disponible: p.disponible, agotado: p.agotado || p.disponible === 0, destacado: p.destacado,
+    materiales: p.materiales, dimensiones: p.dimensiones, tiempoEntrega: p.tiempo_entrega,
+  };
+};
 
 export function AppProvider({ children }: { children: ReactNode }) {
-  const [state, setState] = useState<Persist>(inicial);
+  const [cargando, setCargando] = useState(true);
+  const [usuario, setUsuario] = useState<Usuario | null>(null);
+  const [artesanos, setArtesanos] = useState<Artesano[]>([]);
+  const [productos, setProductos] = useState<Producto[]>([]);
+  const [resenas, setResenas] = useState<Resena[]>([]);
+  const [publicaciones, setPublicaciones] = useState<Publicacion[]>([]);
+  const [carrito, setCarrito] = useState<ItemCarrito[]>([]);
+  const [pedidos, setPedidos] = useState<Pedido[]>([]);
+  const [favoritos, setFavoritos] = useState<string[]>([]);
+  const [conversaciones, setConversaciones] = useState<Conversacion[]>([]);
+  const [notificaciones, setNotificaciones] = useState<Notificacion[]>([]);
+  const usuarioRef = useRef<Usuario | null>(null);
+  usuarioRef.current = usuario;
 
+  // Carrito local (no requiere cuenta)
   useEffect(() => {
     try {
-      const raw = localStorage.getItem(KEY);
-      if (raw) setState({ ...inicial, ...JSON.parse(raw) });
-    } catch {
-      /* noop */
-    }
+      const raw = localStorage.getItem(KEY_CARRITO);
+      if (raw) setCarrito(JSON.parse(raw));
+    } catch { /* noop */ }
+  }, []);
+  useEffect(() => {
+    try { localStorage.setItem(KEY_CARRITO, JSON.stringify(carrito)); } catch { /* noop */ }
+  }, [carrito]);
+
+  const cargarPublico = useCallback(async () => {
+    const [a, p, r, pub] = await Promise.all([
+      supabase.from("artesanos").select("*").order("created_at"),
+      supabase.from("productos").select("*").order("created_at", { ascending: false }),
+      supabase.from("resenas").select("*").order("created_at", { ascending: false }),
+      supabase.from("publicaciones").select("*").order("created_at", { ascending: false }),
+    ]);
+    setArtesanos((a.data ?? []).map(mapArtesano));
+    setProductos((p.data ?? []).map(mapProducto));
+    setResenas((r.data ?? []).map((x) => ({
+      id: x.id, productoId: x.producto_id, autor: x.autor_nombre, autorId: x.autor_id, estrellas: x.estrellas,
+      comentario: x.comentario, fecha: x.created_at, verificada: x.verificada,
+    })));
+    setPublicaciones((pub.data ?? []).map((x) => ({
+      id: x.id, artesanoId: x.artesano_id, tipo: x.tipo as "foto" | "video", mediaUrl: x.media_url, texto: x.texto, oculta: x.oculta, fecha: x.created_at,
+    })));
   }, []);
 
-  useEffect(() => {
-    try {
-      localStorage.setItem(KEY, JSON.stringify(state));
-    } catch {
-      /* noop */
-    }
-  }, [state]);
+  const cargarPrivado = useCallback(async (u: Usuario) => {
+    const [ped, fav, conv, noti] = await Promise.all([
+      supabase.from("pedidos").select("*, pedido_items(*), pedido_historial(*)").order("created_at", { ascending: false }),
+      supabase.from("favoritos").select("producto_id"),
+      supabase.from("conversaciones").select("*, mensajes(*), artesanos(nombre)").order("updated_at", { ascending: false }),
+      supabase.from("notificaciones").select("*").order("created_at", { ascending: false }).limit(50),
+    ]);
+    setPedidos((ped.data ?? []).map((p: any) => ({
+      id: p.id, codigo: p.codigo, fecha: p.created_at, total: p.total, estado: p.estado, comprador: p.comprador_nombre,
+      compradorId: p.comprador_id, artesanoId: p.artesano_id, direccion: p.direccion,
+      items: (p.pedido_items ?? []).map((i: any) => ({ productoId: i.producto_id, nombre: i.nombre, precio: i.precio, cantidad: i.cantidad, imagen: resolverImagen(i.imagen) })),
+      historial: (p.pedido_historial ?? []).map((h: any) => ({ estado: h.estado, fecha: h.created_at }))
+        .sort((x: any, y: any) => x.fecha.localeCompare(y.fecha)),
+    })));
+    setFavoritos((fav.data ?? []).map((f) => f.producto_id));
+    const convs = conv.data ?? [];
+    const ids = [...new Set(convs.map((c) => c.comprador_id))];
+    const perfiles = ids.length ? (await supabase.from("profiles").select("id, nombre").in("id", ids)).data ?? [] : [];
+    const nombre = (id: string) => perfiles.find((p) => p.id === id)?.nombre ?? "Comprador";
+    setConversaciones(convs.map((c: any) => ({
+      id: c.id, artesanoId: c.artesano_id, artesanoNombre: c.artesanos?.nombre ?? "Artesano", productoId: c.producto_id ?? undefined,
+      productoNombre: c.producto_nombre ?? undefined, compradorId: c.comprador_id, comprador: nombre(c.comprador_id), actualizada: c.updated_at,
+      mensajes: (c.mensajes ?? []).sort((a: any, b: any) => a.created_at.localeCompare(b.created_at)).map((m: any) => ({
+        id: m.id, de: m.autor_id === c.comprador_id ? "comprador" : "artesano", texto: m.texto, fecha: m.created_at,
+      })),
+    })));
+    setNotificaciones((noti.data ?? []).map((n) => ({ id: n.id, titulo: n.titulo, detalle: n.detalle, enlace: n.enlace, fecha: n.created_at, leida: n.leida })));
+    void u;
+  }, []);
 
-  const value = useMemo<Ctx>(
-    () => ({
-      usuario: state.usuario,
-      registrar: (u) =>
-        setState((s) => ({
-          ...s,
-          cuentas: [...s.cuentas.filter((c) => c.correo !== u.correo), u],
-          usuario: { nombre: u.nombre, correo: u.correo, tipo: u.tipo, ubicacion: u.ubicacion },
-        })),
-      entrar: (correo, password) => {
-        const cuenta = state.cuentas.find((c) => c.correo === correo && c.password === password);
-        if (!cuenta) return false;
-        setState((s) => ({
-          ...s,
-          usuario: { nombre: cuenta.nombre, correo: cuenta.correo, tipo: cuenta.tipo, ubicacion: cuenta.ubicacion },
-        }));
-        return true;
-      },
-      salir: () => setState((s) => ({ ...s, usuario: null })),
-      productos: state.productos,
-      agregarProducto: (p) =>
-        setState((s) => ({
-          ...s,
-          productos: [{ ...p, id: `n${Date.now()}` }, ...s.productos],
-          notificaciones: [
-            nuevaNotificacion("Producto publicado", `"${p.nombre}" ya está visible en el catálogo.`),
-            ...s.notificaciones,
-          ],
-        })),
-      actualizarProducto: (id, p) =>
-        setState((s) => ({
-          ...s,
-          productos: s.productos.map((x) => (x.id === id ? { ...x, ...p } : x)),
-        })),
-      eliminarProducto: (id) =>
-        setState((s) => ({ ...s, productos: s.productos.filter((x) => x.id !== id) })),
-      carrito: state.carrito,
-      agregarAlCarrito: (productoId, cantidad = 1) =>
-        setState((s) => {
-          const existe = s.carrito.find((i) => i.productoId === productoId);
-          return {
-            ...s,
-            carrito: existe
-              ? s.carrito.map((i) =>
-                  i.productoId === productoId ? { ...i, cantidad: i.cantidad + cantidad } : i,
-                )
-              : [...s.carrito, { productoId, cantidad }],
-          };
-        }),
-      cambiarCantidad: (productoId, cantidad) =>
-        setState((s) => ({
-          ...s,
-          carrito:
-            cantidad <= 0
-              ? s.carrito.filter((i) => i.productoId !== productoId)
-              : s.carrito.map((i) => (i.productoId === productoId ? { ...i, cantidad } : i)),
-        })),
-      quitarDelCarrito: (productoId) =>
-        setState((s) => ({ ...s, carrito: s.carrito.filter((i) => i.productoId !== productoId) })),
-      vaciarCarrito: () => setState((s) => ({ ...s, carrito: [] })),
-      pedidos: state.pedidos,
-      confirmarPedido: () => {
-        if (state.carrito.length === 0) return null;
-        const items = state.carrito.map((i) => {
-          const p = state.productos.find((x) => x.id === i.productoId)!;
-          return {
-            productoId: p.id,
-            nombre: p.nombre,
-            precio: p.precio,
-            cantidad: i.cantidad,
-            imagen: p.imagen,
-          };
+  const cargarUsuario = useCallback(async (sesionUser: { id: string; email?: string | undefined } | null) => {
+    if (!sesionUser) {
+      setUsuario(null); setPedidos([]); setFavoritos([]); setConversaciones([]); setNotificaciones([]);
+      return;
+    }
+    const [{ data: perfil }, { data: tienda }] = await Promise.all([
+      supabase.from("profiles").select("*").eq("id", sesionUser.id).maybeSingle(),
+      supabase.from("artesanos").select("id").eq("user_id", sesionUser.id).maybeSingle(),
+    ]);
+    const u: Usuario = {
+      id: sesionUser.id, correo: sesionUser.email ?? "", nombre: perfil?.nombre ?? "",
+      tipo: (perfil?.tipo as Usuario["tipo"]) ?? "comprador", ubicacion: perfil?.ubicacion ?? undefined, artesanoId: tienda?.id,
+    };
+    setUsuario(u);
+    await cargarPrivado(u);
+  }, [cargarPrivado]);
+
+  useEffect(() => {
+    let activo = true;
+    (async () => {
+      await cargarPublico();
+      const { data } = await supabase.auth.getUser();
+      if (activo) await cargarUsuario(data.user);
+      if (activo) setCargando(false);
+    })();
+    const { data: sub } = supabase.auth.onAuthStateChange((evento, sesion) => {
+      if (evento !== "SIGNED_IN" && evento !== "SIGNED_OUT" && evento !== "USER_UPDATED") return;
+      setTimeout(() => void cargarUsuario(sesion?.user ?? null), 0);
+    });
+    return () => { activo = false; sub.subscription.unsubscribe(); };
+  }, [cargarPublico, cargarUsuario]);
+
+  // Tiempo real: mensajes, notificaciones y pedidos
+  useEffect(() => {
+    if (!usuario) return;
+    const recargar = () => { if (usuarioRef.current) void cargarPrivado(usuarioRef.current); };
+    const canal = supabase
+      .channel(`usuario-${usuario.id}`)
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "mensajes" }, recargar)
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "notificaciones", filter: `user_id=eq.${usuario.id}` }, recargar)
+      .on("postgres_changes", { event: "*", schema: "public", table: "pedidos" }, recargar)
+      .subscribe();
+    return () => { void supabase.removeChannel(canal); };
+  }, [usuario?.id, cargarPrivado]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const miTienda = useMemo(() => artesanos.find((a) => a.userId === usuario?.id) ?? null, [artesanos, usuario?.id]);
+
+  const value = useMemo<Ctx>(() => {
+    const requiereSesion = (): Resultado | null => (usuarioRef.current ? null : { ok: false, error: "Inicia sesión para continuar" });
+    return {
+      cargando,
+      usuario,
+      registrar: async ({ nombre, correo, password, tipo, ubicacion }) => {
+        const { data, error } = await supabase.auth.signUp({
+          email: correo, password,
+          options: { emailRedirectTo: `${window.location.origin}/perfil`, data: { nombre, tipo, ubicacion } },
         });
-        const pedido: Pedido = {
-          id: `RAS-${String(state.pedidos.length + 1).padStart(4, "0")}`,
-          fecha: new Date().toISOString(),
-          items,
-          total: items.reduce((a, b) => a + b.precio * b.cantidad, 0),
-          estado: "Pedido recibido",
-          comprador: state.usuario?.nombre ?? "Invitado",
+        if (error) return fallo(error);
+        return { ok: true, confirmar: !data.session };
+      },
+      entrar: async (correo, password) => {
+        const { error } = await supabase.auth.signInWithPassword({ email: correo, password });
+        return error ? fallo(error.message === "Invalid login credentials" ? new Error("Correo o contraseña incorrectos") : error) : { ok: true };
+      },
+      recuperar: async (correo) => {
+        const { error } = await supabase.auth.resetPasswordForEmail(correo, { redirectTo: `${window.location.origin}/restablecer` });
+        return error ? fallo(error) : { ok: true };
+      },
+      salir: async () => { await supabase.auth.signOut(); },
+      artesanos,
+      miTienda,
+      actualizarTienda: async (d) => {
+        if (!miTienda) return { ok: false, error: "No tienes una tienda" };
+        const fila: Record<string, string> = {};
+        const mapa: Record<string, string> = { contactoPublico: "contacto_publico" };
+        for (const [k, v] of Object.entries(d)) if (v !== undefined) fila[mapa[k] ?? k] = v as string;
+        const { error } = await supabase.from("artesanos").update(fila).eq("id", miTienda.id);
+        if (error) return fallo(error);
+        await cargarPublico();
+        return { ok: true };
+      },
+      productos,
+      guardarProducto: async (id, d) => {
+        if (!miTienda) return { ok: false, error: "Solo los artesanos pueden publicar" };
+        const fila = {
+          nombre: d.nombre, precio: d.precio, categoria: d.categoria, descripcion: d.descripcion, materiales: d.materiales,
+          dimensiones: d.dimensiones, tiempo_entrega: d.tiempoEntrega, imagenes: d.imagenes, videos: d.videos,
+          disponible: d.disponible, agotado: d.agotado || d.disponible === 0,
         };
-        setState((s) => ({
-          ...s,
-          pedidos: [pedido, ...s.pedidos],
-          carrito: [],
-          notificaciones: [
-            nuevaNotificacion(
-              "Pedido confirmado",
-              `Tu pedido ${pedido.id} fue recibido y pronto pasará a preparación.`,
-            ),
-            ...s.notificaciones,
-          ],
-        }));
-        return pedido;
+        const { error } = id
+          ? await supabase.from("productos").update(fila).eq("id", id)
+          : await supabase.from("productos").insert({ ...fila, artesano_id: miTienda.id });
+        if (error) return fallo(error);
+        await cargarPublico();
+        return { ok: true };
       },
-      avanzarPedido: (id) =>
-        setState((s) => {
-          const pedido = s.pedidos.find((p) => p.id === id);
-          if (!pedido) return s;
-          const siguiente =
-            estadosPedido[
-              Math.min(estadosPedido.indexOf(pedido.estado) + 1, estadosPedido.length - 1)
-            ] ?? "Entregado";
-          if (siguiente === pedido.estado) return s;
-          return {
-            ...s,
-            pedidos: s.pedidos.map((p) => (p.id === id ? { ...p, estado: siguiente } : p)),
-            notificaciones: [
-              nuevaNotificacion("Actualización de pedido", `${pedido.id} ahora está: ${siguiente}.`),
-              ...s.notificaciones,
-            ],
-          };
-        }),
-      favoritos: state.favoritos,
-      toggleFavorito: (productoId) =>
-        setState((s) => ({
-          ...s,
-          favoritos: s.favoritos.includes(productoId)
-            ? s.favoritos.filter((f) => f !== productoId)
-            : [...s.favoritos, productoId],
-        })),
-      resenas: state.resenas,
-      agregarResena: (r) =>
-        setState((s) => ({
-          ...s,
-          resenas: [{ ...r, id: `r${Date.now()}`, fecha: new Date().toISOString() }, ...s.resenas],
-        })),
-      conversaciones: state.conversaciones,
-      iniciarConversacion: (artesanoId, artesanoNombre, producto) => {
-        const comprador = state.usuario?.nombre ?? "Invitado";
-        const existente = state.conversaciones.find(
-          (c) =>
-            c.artesanoId === artesanoId &&
-            c.comprador === comprador &&
-            c.productoId === producto?.id,
-        );
-        if (existente) return existente.id;
-        const id = `c${Date.now()}`;
-        setState((s) => ({
-          ...s,
-          conversaciones: [
-            {
-              id,
-              artesanoId,
-              artesanoNombre,
-              productoId: producto?.id,
-              productoNombre: producto?.nombre,
-              comprador,
-              mensajes: [],
-            },
-            ...s.conversaciones,
-          ],
-        }));
-        return id;
+      actualizarProducto: async (id, d) => {
+        const fila: { disponible?: number; agotado?: boolean; precio?: number } = { ...d };
+        if (d.disponible !== undefined && d.agotado === undefined) fila.agotado = d.disponible === 0;
+        const { error } = await supabase.from("productos").update(fila).eq("id", id);
+        if (error) return fallo(error);
+        await cargarPublico();
+        return { ok: true };
       },
-      enviarMensaje: (conversacionId, de, texto) =>
-        setState((s) => {
-          const conv = s.conversaciones.find((c) => c.id === conversacionId);
-          if (!conv) return s;
-          const mensaje: Mensaje = { de, texto, fecha: new Date().toISOString() };
-          return {
-            ...s,
-            conversaciones: s.conversaciones.map((c) =>
-              c.id === conversacionId ? { ...c, mensajes: [...c.mensajes, mensaje] } : c,
-            ),
-            notificaciones: [
-              nuevaNotificacion(
-                "Nuevo mensaje",
-                `${de === "comprador" ? conv.comprador : conv.artesanoNombre}: “${texto.slice(0, 60)}${texto.length > 60 ? "…" : ""}”`,
-              ),
-              ...s.notificaciones,
-            ],
-          };
-        }),
-      notificaciones: state.notificaciones,
-      marcarNotificacionesLeidas: () =>
-        setState((s) => ({
-          ...s,
-          notificaciones: s.notificaciones.map((n) => ({ ...n, leida: true })),
-        })),
-    }),
-    [state],
-  );
+      eliminarProducto: async (id) => {
+        const { error } = await supabase.from("productos").delete().eq("id", id);
+        if (error) return fallo(error);
+        await cargarPublico();
+        return { ok: true };
+      },
+      subirArchivo: async (archivo) => {
+        const u = usuarioRef.current;
+        if (!u) throw new Error("Inicia sesión para subir archivos");
+        const esImagen = archivo.type.startsWith("image/");
+        const esVideo = archivo.type.startsWith("video/");
+        if (!esImagen && !esVideo) throw new Error("Solo se permiten fotos o videos");
+        if (esVideo && archivo.size > 50 * 1024 * 1024) throw new Error("El video supera 50 MB");
+        const cuerpo = esImagen ? await comprimirImagen(archivo) : archivo;
+        const ext = esImagen ? "jpg" : (archivo.name.split(".").pop() ?? "mp4").toLowerCase();
+        const ruta = `${u.id}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
+        const { error } = await supabase.storage.from("media").upload(ruta, cuerpo, { contentType: esImagen ? "image/jpeg" : archivo.type });
+        if (error) throw error;
+        const { data, error: e2 } = await supabase.storage.from("media").createSignedUrl(ruta, 60 * 60 * 24 * 365 * 10);
+        if (e2 || !data) throw e2 ?? new Error("No se pudo obtener el enlace");
+        return data.signedUrl;
+      },
+      carrito,
+      agregarAlCarrito: (productoId, cantidad = 1) =>
+        setCarrito((c) => c.find((i) => i.productoId === productoId)
+          ? c.map((i) => (i.productoId === productoId ? { ...i, cantidad: i.cantidad + cantidad } : i))
+          : [...c, { productoId, cantidad }]),
+      cambiarCantidad: (productoId, cantidad) =>
+        setCarrito((c) => cantidad <= 0 ? c.filter((i) => i.productoId !== productoId) : c.map((i) => (i.productoId === productoId ? { ...i, cantidad } : i))),
+      quitarDelCarrito: (productoId) => setCarrito((c) => c.filter((i) => i.productoId !== productoId)),
+      vaciarCarrito: () => setCarrito([]),
+      pedidos,
+      confirmarPedido: async (direccion) => {
+        const r = requiereSesion(); if (r) return r;
+        const { data, error } = await supabase.rpc("crear_pedido", {
+          _items: carrito.map((i) => ({ producto_id: i.productoId, cantidad: i.cantidad })), _direccion: direccion,
+        });
+        if (error) return fallo(error);
+        setCarrito([]);
+        await Promise.all([cargarPublico(), cargarPrivado(usuarioRef.current!)]);
+        return { ok: true, codigos: (data as unknown as string[]) ?? [] };
+      },
+      cambiarEstadoPedido: async (id, estado) => {
+        const { error } = await supabase.rpc("actualizar_estado_pedido", { _pedido_id: id, _estado: estado });
+        if (error) return fallo(error);
+        await cargarPrivado(usuarioRef.current!);
+        return { ok: true };
+      },
+      favoritos,
+      toggleFavorito: async (productoId) => {
+        const r = requiereSesion(); if (r) return r;
+        const es = favoritos.includes(productoId);
+        setFavoritos((f) => (es ? f.filter((x) => x !== productoId) : [...f, productoId]));
+        const { error } = es
+          ? await supabase.from("favoritos").delete().eq("producto_id", productoId)
+          : await supabase.from("favoritos").insert({ producto_id: productoId });
+        if (error) { setFavoritos((f) => (es ? [...f, productoId] : f.filter((x) => x !== productoId))); return fallo(error); }
+        return { ok: true };
+      },
+      resenas,
+      agregarResena: async ({ productoId, estrellas, comentario }) => {
+        const u = usuarioRef.current;
+        if (!u) return { ok: false, error: "Inicia sesión para reseñar" };
+        const { error } = await supabase.from("resenas").insert({
+          producto_id: productoId, autor_id: u.id, autor_nombre: u.nombre, estrellas, comentario, verificada: true,
+        });
+        if (error) return fallo(error.code === "42501" ? new Error("Solo puedes reseñar productos que ya recibiste") : error);
+        await cargarPublico();
+        return { ok: true };
+      },
+      conversaciones,
+      iniciarConversacion: async (artesanoId, producto) => {
+        const u = usuarioRef.current;
+        if (!u) return null;
+        let q = supabase.from("conversaciones").select("id").eq("comprador_id", u.id).eq("artesano_id", artesanoId);
+        q = producto ? q.eq("producto_id", producto.id) : q.is("producto_id", null);
+        const { data: existe } = await q.maybeSingle();
+        if (existe) return existe.id;
+        const { data, error } = await supabase.from("conversaciones")
+          .insert({ comprador_id: u.id, artesano_id: artesanoId, producto_id: producto?.id ?? null, producto_nombre: producto?.nombre ?? null })
+          .select("id").single();
+        if (error) return null;
+        await cargarPrivado(u);
+        return data.id;
+      },
+      enviarMensaje: async (conversacionId, texto) => {
+        const u = usuarioRef.current;
+        if (!u) return { ok: false, error: "Inicia sesión" };
+        const { error } = await supabase.from("mensajes").insert({ conversacion_id: conversacionId, autor_id: u.id, texto });
+        if (error) return fallo(error);
+        await cargarPrivado(u);
+        return { ok: true };
+      },
+      notificaciones,
+      marcarNotificacionesLeidas: async () => {
+        const u = usuarioRef.current;
+        if (!u) return;
+        setNotificaciones((n) => n.map((x) => ({ ...x, leida: true })));
+        await supabase.from("notificaciones").update({ leida: true }).eq("user_id", u.id).eq("leida", false);
+      },
+      publicaciones,
+      crearPublicacion: async (d) => {
+        if (!miTienda) return { ok: false, error: "Solo los artesanos pueden publicar" };
+        const { error } = await supabase.from("publicaciones").insert({ artesano_id: miTienda.id, tipo: d.tipo, media_url: d.mediaUrl, texto: d.texto });
+        if (error) return fallo(error);
+        await cargarPublico();
+        return { ok: true };
+      },
+      ocultarPublicacion: async (id, oculta) => {
+        const { error } = await supabase.from("publicaciones").update({ oculta }).eq("id", id);
+        if (error) return fallo(error);
+        await cargarPublico();
+        return { ok: true };
+      },
+      eliminarPublicacion: async (id) => {
+        const { error } = await supabase.from("publicaciones").delete().eq("id", id);
+        if (error) return fallo(error);
+        await cargarPublico();
+        return { ok: true };
+      },
+      reportarPublicacion: async (id, motivo) => {
+        const r = requiereSesion(); if (r) return r;
+        const { error } = await supabase.from("reportes").insert({ publicacion_id: id, motivo });
+        if (error) return fallo(error.code === "23505" ? new Error("Ya reportaste esta publicación") : error);
+        return { ok: true };
+      },
+    };
+  }, [cargando, usuario, artesanos, miTienda, productos, carrito, pedidos, favoritos, resenas, conversaciones, notificaciones, publicaciones, cargarPublico, cargarPrivado]);
 
   return <AppCtx.Provider value={value}>{children}</AppCtx.Provider>;
 }
