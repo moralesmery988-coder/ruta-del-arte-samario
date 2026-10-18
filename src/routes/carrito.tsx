@@ -29,7 +29,6 @@ function Carrito() {
     return p ? [{ ...i, producto: p }] : [];
   });
   const subtotal = items.reduce((a, b) => a + b.producto.precio * b.cantidad, 0);
-  const envio = subtotal > 0 ? 15000 : 0;
 
   return (
     <AppShell>
@@ -99,11 +98,11 @@ function Carrito() {
                 </div>
                 <div className="flex justify-between">
                   <dt className="text-muted-foreground">Envío</dt>
-                  <dd>{formatoCOP(envio)}</dd>
+                  <dd className="text-xs text-muted-foreground">Se acuerda con el artesano</dd>
                 </div>
                 <div className="flex justify-between border-t border-border pt-2 text-base font-semibold">
                   <dt>Total</dt>
-                  <dd className="text-primary">{formatoCOP(subtotal + envio)}</dd>
+                  <dd className="text-primary">{formatoCOP(subtotal)}</dd>
                 </div>
               </dl>
               {usuario ? (
