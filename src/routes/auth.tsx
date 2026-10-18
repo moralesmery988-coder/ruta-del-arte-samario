@@ -21,30 +21,41 @@ export const Route = createFileRoute("/auth")({
 type Modo = "registro" | "ingreso" | "recuperar";
 
 function Auth() {
-  const { registrar, entrar } = useApp();
+  const { registrar, entrar, recuperar } = useApp();
   const navigate = useNavigate();
   const [modo, setModo] = useState<Modo>("registro");
   const [tipo, setTipo] = useState<"comprador" | "artesano">("comprador");
   const [form, setForm] = useState({ nombre: "", correo: "", password: "", ubicacion: ubicaciones[0]! });
+  const [enviando, setEnviando] = useState(false);
 
   const campo = "mt-1.5 w-full rounded-xl border border-input bg-background p-3 text-sm outline-none focus:ring-2 focus:ring-ring";
 
-  const enviar = (e: React.FormEvent) => {
+  const enviar = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (modo === "registro") {
-      registrar({ ...form, tipo });
-      toast.success(`¡Bienvenido/a, ${form.nombre}!`);
-      navigate({ to: tipo === "artesano" ? "/panel" : "/explorar" });
-    } else if (modo === "ingreso") {
-      if (entrar(form.correo, form.password)) {
-        toast.success("Sesión iniciada");
-        navigate({ to: "/perfil" });
+    setEnviando(true);
+    try {
+      if (modo === "registro") {
+        if (form.password.length < 8) { toast.error("La contraseña debe tener al menos 8 caracteres"); return; }
+        const r = await registrar({ ...form, tipo });
+        if (!r.ok) { toast.error("No se pudo crear la cuenta", { description: r.error }); return; }
+        if (r.confirmar) {
+          toast.success("Revisa tu correo", { description: "Te enviamos un enlace para confirmar tu cuenta." });
+          setModo("ingreso");
+        } else {
+          toast.success(`¡Bienvenido/a, ${form.nombre}!`);
+          navigate({ to: tipo === "artesano" ? "/panel" : "/explorar" });
+        }
+      } else if (modo === "ingreso") {
+        const r = await entrar(form.correo, form.password);
+        if (r.ok) { toast.success("Sesión iniciada"); navigate({ to: "/perfil" }); }
+        else toast.error(r.error);
       } else {
-        toast.error("Correo o contraseña incorrectos");
+        const r = await recuperar(form.correo);
+        if (r.ok) { toast.success("Te enviamos un enlace de recuperación", { description: form.correo }); setModo("ingreso"); }
+        else toast.error(r.error);
       }
-    } else {
-      toast.success("Te enviamos un enlace de recuperación", { description: form.correo });
-      setModo("ingreso");
+    } finally {
+      setEnviando(false);
     }
   };
 
