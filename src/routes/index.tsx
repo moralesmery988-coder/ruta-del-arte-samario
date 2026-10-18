@@ -4,7 +4,7 @@ import hero from "@/assets/hero-santa-marta.jpg";
 import logo from "@/assets/logo.png.asset.json";
 import { AppShell } from "@/components/AppShell";
 import { ProductCard } from "@/components/ProductCard";
-import { artesanos, categorias } from "@/lib/data";
+import { categorias } from "@/lib/data";
 import { useApp } from "@/lib/store";
 
 export const Route = createFileRoute("/")({
@@ -27,7 +27,7 @@ export const Route = createFileRoute("/")({
 });
 
 function Index() {
-  const { productos, usuario } = useApp();
+  const { productos, usuario, artesanos } = useApp();
   const destacados = productos.filter((p) => p.destacado).slice(0, 6);
 
   return (
