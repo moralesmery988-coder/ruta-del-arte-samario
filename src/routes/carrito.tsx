@@ -1,5 +1,6 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { Minus, Plus, RotateCcw, ShieldCheck, ShoppingBag, Trash2 } from "lucide-react";
+import { useState } from "react";
 import { toast } from "sonner";
 import { AppShell } from "@/components/AppShell";
 import { formatoCOP, metodosPago } from "@/lib/data";
@@ -18,15 +19,16 @@ export const Route = createFileRoute("/carrito")({
 });
 
 function Carrito() {
-  const { carrito, productos, cambiarCantidad, quitarDelCarrito, confirmarPedido } = useApp();
+  const { carrito, productos, cambiarCantidad, quitarDelCarrito, confirmarPedido, usuario } = useApp();
   const navigate = useNavigate();
+  const [direccion, setDireccion] = useState("");
+  const [enviando, setEnviando] = useState(false);
 
   const items = carrito.flatMap((i) => {
     const p = productos.find((x) => x.id === i.productoId);
     return p ? [{ ...i, producto: p }] : [];
   });
   const subtotal = items.reduce((a, b) => a + b.producto.precio * b.cantidad, 0);
-  const envio = subtotal > 0 ? 15000 : 0;
 
   return (
     <AppShell>
@@ -96,25 +98,48 @@ function Carrito() {
                 </div>
                 <div className="flex justify-between">
                   <dt className="text-muted-foreground">Envío</dt>
-                  <dd>{formatoCOP(envio)}</dd>
+                  <dd className="text-xs text-muted-foreground">Se acuerda con el artesano</dd>
                 </div>
                 <div className="flex justify-between border-t border-border pt-2 text-base font-semibold">
                   <dt>Total</dt>
-                  <dd className="text-primary">{formatoCOP(subtotal + envio)}</dd>
+                  <dd className="text-primary">{formatoCOP(subtotal)}</dd>
                 </div>
               </dl>
-              <button
-                onClick={() => {
-                  const pedido = confirmarPedido();
-                  if (pedido) {
-                    toast.success("Pedido confirmado", { description: `Número ${pedido.id}` });
-                    navigate({ to: "/pedidos" });
-                  }
-                }}
-                className="mt-5 w-full rounded-full bg-accent py-3.5 text-sm font-semibold text-accent-foreground"
-              >
-                Confirmar pedido
-              </button>
+              {usuario ? (
+                <>
+                  <label className="mt-4 block text-sm font-medium">
+                    Dirección de entrega
+                    <input
+                      value={direccion}
+                      onChange={(e) => setDireccion(e.target.value)}
+                      placeholder="Ciudad, barrio, dirección"
+                      className="mt-1.5 w-full rounded-xl border border-input bg-background p-3 text-sm outline-none focus:ring-2 focus:ring-ring"
+                    />
+                  </label>
+                  <button
+                    disabled={enviando}
+                    onClick={async () => {
+                      if (direccion.trim().length < 5) return void toast.error("Escribe la dirección de entrega");
+                      setEnviando(true);
+                      const r = await confirmarPedido(direccion.trim());
+                      setEnviando(false);
+                      if (!r.ok) return void toast.error("No se pudo registrar el pedido", { description: r.error });
+                      toast.success("Pedido enviado al artesano", { description: `Número ${(r.codigos ?? []).join(", ")}` });
+                      navigate({ to: "/pedidos" });
+                    }}
+                    className="mt-4 w-full rounded-full bg-accent py-3.5 text-sm font-semibold text-accent-foreground disabled:opacity-60"
+                  >
+                    {enviando ? "Enviando…" : "Enviar pedido"}
+                  </button>
+                  <p className="mt-2 text-center text-[11px] text-muted-foreground">
+                    El artesano confirma tu pedido y acuerda contigo el pago por el chat.
+                  </p>
+                </>
+              ) : (
+                <Link to="/auth" className="mt-5 block w-full rounded-full bg-accent py-3.5 text-center text-sm font-semibold text-accent-foreground">
+                  Inicia sesión para hacer tu pedido
+                </Link>
+              )}
               <div className="mt-4 border-t border-border pt-4">
                 <p className="inline-flex items-center gap-2 text-xs font-semibold">
                   <ShieldCheck className="h-4 w-4 text-accent" /> Compra protegida

@@ -16,7 +16,8 @@ import { useState } from "react";
 import { toast } from "sonner";
 import { AppShell } from "@/components/AppShell";
 import { ProductCard } from "@/components/ProductCard";
-import { artesanos, formatoCOP, metodosPago } from "@/lib/data";
+import { QrTarjeta } from "@/components/QrTarjeta";
+import { formatoCOP, metodosPago } from "@/lib/data";
 import { useApp } from "@/lib/store";
 
 export const Route = createFileRoute("/producto/$id")({
@@ -56,12 +57,22 @@ function DetalleProducto() {
     agregarResena,
     iniciarConversacion,
     usuario,
+    artesanos,
+    cargando,
   } = useApp();
   const navigate = useNavigate();
   const producto = productos.find((p) => p.id === id);
   const [fotoActiva, setFotoActiva] = useState(0);
   const [estrellasNueva, setEstrellasNueva] = useState(5);
   const [comentarioNuevo, setComentarioNuevo] = useState("");
+
+  if (!producto && cargando) {
+    return (
+      <AppShell>
+        <p className="py-16 text-center text-sm text-muted-foreground">Cargando…</p>
+      </AppShell>
+    );
+  }
 
   if (!producto) {
     return (
@@ -78,35 +89,41 @@ function DetalleProducto() {
 
   const artesano = artesanos.find((a) => a.id === producto.artesanoId);
   const relacionados = productos
-    .filter((p) => p.categoria === producto.categoria && p.id !== producto.id)
+    .filter((p) => p.id !== producto.id && (p.categoria === producto.categoria || p.artesanoId === producto.artesanoId))
+    .sort((a, b) => Number(b.artesanoId === producto.artesanoId) - Number(a.artesanoId === producto.artesanoId))
     .slice(0, 4);
+  const medios = [
+    ...producto.imagenes.map((src) => ({ tipo: "foto" as const, src })),
+    ...producto.videos.map((src) => ({ tipo: "video" as const, src })),
+  ];
+  const medioActivo = medios[fotoActiva] ?? medios[0]!;
+  const esMio = !!artesano?.userId && artesano.userId === usuario?.id;
   const esFavorito = favoritos.includes(producto.id);
   const resenasProducto = resenas.filter((r) => r.productoId === producto.id);
   const promedio =
     resenasProducto.length > 0
       ? resenasProducto.reduce((a, r) => a + r.estrellas, 0) / resenasProducto.length
       : 0;
-  const yaReseno = resenasProducto.some((r) => r.autor === (usuario?.nombre ?? "Invitado"));
+  const yaReseno = !!usuario && resenasProducto.some((r) => r.autorId === usuario.id);
 
-  const escribirAlArtesano = () => {
+  const escribirAlArtesano = async () => {
     if (!artesano) return;
-    const conId = iniciarConversacion(artesano.id, artesano.nombre, {
-      id: producto.id,
-      nombre: producto.nombre,
-    });
+    if (!usuario) {
+      toast("Inicia sesión para escribir al artesano");
+      navigate({ to: "/auth" });
+      return;
+    }
+    const conId = await iniciarConversacion(artesano.id, { id: producto.id, nombre: producto.nombre });
+    if (!conId) return void toast.error("No se pudo abrir la conversación");
     navigate({ to: "/mensajes", search: { con: conId } });
   };
 
-  const publicarResena = (e: React.FormEvent) => {
+  const publicarResena = async (e: React.FormEvent) => {
     e.preventDefault();
     const limpio = comentarioNuevo.trim();
     if (!limpio) return;
-    agregarResena({
-      productoId: producto.id,
-      autor: usuario?.nombre ?? "Invitado",
-      estrellas: estrellasNueva,
-      comentario: limpio,
-    });
+    const r = await agregarResena({ productoId: producto.id, estrellas: estrellasNueva, comentario: limpio });
+    if (!r.ok) return void toast.error(r.error);
     setComentarioNuevo("");
     setEstrellasNueva(5);
     toast.success("¡Gracias por tu reseña!");
@@ -121,7 +138,7 @@ function DetalleProducto() {
     {
       icono: ShieldCheck,
       titulo: "Disponibilidad",
-      valor: producto.disponible > 0 ? `${producto.disponible} unidades listas para envío` : "Agotado por ahora",
+      valor: !producto.agotado ? `${producto.disponible} unidades listas para envío` : "Agotado por ahora",
     },
   ].filter((e) => e !== null);
 
@@ -137,30 +154,31 @@ function DetalleProducto() {
 
         <div className="grid gap-8 md:grid-cols-2">
           <div>
-            <img
-              src={producto.imagen}
-              alt={producto.nombre}
-              loading="lazy"
-              className="aspect-square w-full rounded-3xl object-cover shadow-card"
-            />
-            <div className="mt-3 grid grid-cols-3 gap-3">
-              {[0, 1, 2].map((i) => (
-                <button
-                  key={i}
-                  onClick={() => setFotoActiva(i)}
-                  aria-label={`Ver fotografía ${i + 1}`}
-                  className={`overflow-hidden rounded-xl border-2 ${
-                    fotoActiva === i ? "border-accent" : "border-transparent opacity-70"
-                  }`}
-                >
-                  <img
-                    src={producto.imagen}
-                    alt={`${producto.nombre} vista ${i + 1}`}
-                    loading="lazy"
-                    className="aspect-square w-full object-cover"
-                  />
-                </button>
-              ))}
+            {medioActivo.tipo === "video" ? (
+              <video src={medioActivo.src} controls playsInline className="aspect-square w-full rounded-3xl bg-foreground object-cover shadow-card" />
+            ) : (
+              <img src={medioActivo.src} alt={producto.nombre} className="aspect-square w-full rounded-3xl object-cover shadow-card" />
+            )}
+            {medios.length > 1 && (
+              <div className="mt-3 grid grid-cols-4 gap-3">
+                {medios.map((m, i) => (
+                  <button
+                    key={m.src}
+                    onClick={() => setFotoActiva(i)}
+                    aria-label={`Ver ${m.tipo === "video" ? "video" : "fotografía"} ${i + 1}`}
+                    className={`relative overflow-hidden rounded-xl border-2 ${fotoActiva === i ? "border-accent" : "border-transparent opacity-70"}`}
+                  >
+                    {m.tipo === "video" ? (
+                      <span className="flex aspect-square w-full items-center justify-center bg-secondary text-xs font-semibold">▶ Video</span>
+                    ) : (
+                      <img src={m.src} alt={`${producto.nombre} vista ${i + 1}`} loading="lazy" className="aspect-square w-full object-cover" />
+                    )}
+                  </button>
+                ))}
+              </div>
+            )}
+            <div className="mt-4">
+              <QrTarjeta ruta={`/producto/${producto.id}`} titulo={producto.nombre} subtitulo={artesano?.nombre ?? "Artesanía samaria"} nombreArchivo={`qr-producto-${producto.id}`} />
             </div>
           </div>
 
@@ -169,9 +187,10 @@ function DetalleProducto() {
             <div className="mt-2 flex items-start justify-between gap-3">
               <h1 className="font-display text-3xl font-bold">{producto.nombre}</h1>
               <button
-                onClick={() => {
-                  toggleFavorito(producto.id);
-                  toast.success(esFavorito ? "Quitado de favoritos" : "Guardado en favoritos");
+                onClick={async () => {
+                  const r = await toggleFavorito(producto.id);
+                  if (r.ok) toast.success(esFavorito ? "Quitado de favoritos" : "Guardado en favoritos");
+                  else toast.error(r.error);
                 }}
                 aria-label={esFavorito ? "Quitar de favoritos" : "Guardar en favoritos"}
                 aria-pressed={esFavorito}
@@ -235,12 +254,12 @@ function DetalleProducto() {
                   >
                     Ver perfil y productos
                   </Link>
-                  <button
+                  {!esMio && <button
                     onClick={escribirAlArtesano}
                     className="inline-flex flex-1 items-center justify-center gap-1.5 rounded-full bg-secondary py-2.5 text-xs font-semibold text-secondary-foreground"
                   >
                     <MessageCircle className="h-3.5 w-3.5" /> Escribir al artesano
-                  </button>
+                  </button>}
                 </div>
               </div>
             )}
@@ -251,7 +270,7 @@ function DetalleProducto() {
                   agregarAlCarrito(producto.id);
                   toast.success("Agregado al carrito", { description: producto.nombre });
                 }}
-                disabled={producto.disponible === 0}
+                disabled={producto.agotado}
                 className="inline-flex flex-1 items-center justify-center gap-2 rounded-full border border-accent px-6 py-3.5 text-sm font-semibold text-accent disabled:opacity-50"
               >
                 <ShoppingBag className="h-4 w-4" /> Agregar al carrito
@@ -261,7 +280,7 @@ function DetalleProducto() {
                   agregarAlCarrito(producto.id);
                   navigate({ to: "/carrito" });
                 }}
-                disabled={producto.disponible === 0}
+                disabled={producto.agotado}
                 className="inline-flex flex-1 items-center justify-center gap-2 rounded-full bg-accent px-6 py-3.5 text-sm font-semibold text-accent-foreground disabled:opacity-50"
               >
                 Comprar ahora
@@ -295,9 +314,14 @@ function DetalleProducto() {
             Reseñas {resenasProducto.length > 0 && `(${resenasProducto.length})`}
           </h2>
 
-          {!yaReseno && (
+          {!usuario ? (
+            <p className="mt-4 rounded-2xl bg-sand p-4 text-sm text-muted-foreground">
+              Las reseñas son verificadas: <Link to="/auth" className="font-semibold text-primary">inicia sesión</Link> y podrás calificar esta pieza cuando recibas tu pedido.
+            </p>
+          ) : !yaReseno && (
             <form onSubmit={publicarResena} className="mt-4 rounded-3xl border border-border bg-card p-5">
               <p className="text-sm font-semibold">Comparte tu experiencia</p>
+              <p className="text-xs text-muted-foreground">Solo se publican reseñas de compras entregadas.</p>
               <div className="mt-2 flex items-center gap-1" role="radiogroup" aria-label="Calificación en estrellas">
                 {[1, 2, 3, 4, 5].map((i) => (
                   <button
@@ -337,7 +361,7 @@ function DetalleProducto() {
               {resenasProducto.map((r) => (
                 <li key={r.id} className="rounded-2xl border border-border bg-card p-4">
                   <div className="flex flex-wrap items-center justify-between gap-2">
-                    <p className="text-sm font-semibold">{r.autor}</p>
+                    <p className="text-sm font-semibold">{r.autor}{r.verificada && <span className="ml-2 rounded-full bg-turquesa/15 px-2 py-0.5 text-[10px] font-semibold text-primary">Compra verificada</span>}</p>
                     <Estrellas valor={r.estrellas} />
                   </div>
                   <p className="mt-1.5 text-sm leading-relaxed text-muted-foreground">{r.comentario}</p>

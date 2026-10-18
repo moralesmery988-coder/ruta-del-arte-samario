@@ -3,7 +3,7 @@ import { Search, SlidersHorizontal } from "lucide-react";
 import { useState } from "react";
 import { AppShell } from "@/components/AppShell";
 import { ProductCard } from "@/components/ProductCard";
-import { artesanos, categorias, ubicaciones } from "@/lib/data";
+import { categorias, ubicaciones } from "@/lib/data";
 import { useApp } from "@/lib/store";
 
 type Busqueda = { categoria?: string | undefined; q?: string | undefined };
@@ -25,7 +25,7 @@ export const Route = createFileRoute("/explorar")({
 });
 
 function Explorar() {
-  const { productos } = useApp();
+  const { productos, artesanos } = useApp();
   const { categoria, q } = Route.useSearch();
   const navigate = useNavigate();
   const [precioMax, setPrecioMax] = useState(350000);
