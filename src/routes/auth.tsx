@@ -157,7 +157,7 @@ function Auth() {
             </label>
           )}
 
-          <button className="w-full rounded-full bg-accent py-3.5 text-sm font-semibold text-accent-foreground">
+          <button disabled={enviando} className="w-full rounded-full bg-accent py-3.5 text-sm font-semibold text-accent-foreground disabled:opacity-60">
             {modo === "registro" ? "Crear cuenta" : modo === "ingreso" ? "Entrar" : "Enviar enlace"}
           </button>
         </form>

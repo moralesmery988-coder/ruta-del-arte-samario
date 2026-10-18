@@ -19,6 +19,7 @@ import { Route as MensajesRouteImport } from './routes/mensajes'
 import { Route as PanelRouteImport } from './routes/panel'
 import { Route as PedidosRouteImport } from './routes/pedidos'
 import { Route as PerfilRouteImport } from './routes/perfil'
+import { Route as RestablecerRouteImport } from './routes/restablecer'
 import { Route as ArtesanoIdRouteImport } from './routes/artesano.$id'
 import { Route as ProductoIdRouteImport } from './routes/producto.$id'
 
@@ -72,6 +73,11 @@ const PerfilRoute = PerfilRouteImport.update({
   path: '/perfil',
   getParentRoute: () => rootRouteImport,
 } as any)
+const RestablecerRoute = RestablecerRouteImport.update({
+  id: '/restablecer',
+  path: '/restablecer',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ArtesanoIdRoute = ArtesanoIdRouteImport.update({
   id: '/artesano/$id',
   path: '/artesano/$id',
@@ -94,6 +100,7 @@ export interface FileRoutesByFullPath {
   '/panel': typeof PanelRoute
   '/pedidos': typeof PedidosRoute
   '/perfil': typeof PerfilRoute
+  '/restablecer': typeof RestablecerRoute
   '/artesano/$id': typeof ArtesanoIdRoute
   '/producto/$id': typeof ProductoIdRoute
 }
@@ -108,6 +115,7 @@ export interface FileRoutesByTo {
   '/panel': typeof PanelRoute
   '/pedidos': typeof PedidosRoute
   '/perfil': typeof PerfilRoute
+  '/restablecer': typeof RestablecerRoute
   '/artesano/$id': typeof ArtesanoIdRoute
   '/producto/$id': typeof ProductoIdRoute
 }
@@ -123,6 +131,7 @@ export interface FileRoutesById {
   '/panel': typeof PanelRoute
   '/pedidos': typeof PedidosRoute
   '/perfil': typeof PerfilRoute
+  '/restablecer': typeof RestablecerRoute
   '/artesano/$id': typeof ArtesanoIdRoute
   '/producto/$id': typeof ProductoIdRoute
 }
@@ -139,6 +148,7 @@ export interface FileRouteTypes {
     | '/panel'
     | '/pedidos'
     | '/perfil'
+    | '/restablecer'
     | '/artesano/$id'
     | '/producto/$id'
   fileRoutesByTo: FileRoutesByTo
@@ -153,6 +163,7 @@ export interface FileRouteTypes {
     | '/panel'
     | '/pedidos'
     | '/perfil'
+    | '/restablecer'
     | '/artesano/$id'
     | '/producto/$id'
   id:
@@ -167,6 +178,7 @@ export interface FileRouteTypes {
     | '/panel'
     | '/pedidos'
     | '/perfil'
+    | '/restablecer'
     | '/artesano/$id'
     | '/producto/$id'
   fileRoutesById: FileRoutesById
@@ -182,6 +194,7 @@ export interface RootRouteChildren {
   PanelRoute: typeof PanelRoute
   PedidosRoute: typeof PedidosRoute
   PerfilRoute: typeof PerfilRoute
+  RestablecerRoute: typeof RestablecerRoute
   ArtesanoIdRoute: typeof ArtesanoIdRoute
   ProductoIdRoute: typeof ProductoIdRoute
 }
@@ -258,6 +271,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PerfilRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/restablecer': {
+      id: '/restablecer'
+      path: '/restablecer'
+      fullPath: '/restablecer'
+      preLoaderRoute: typeof RestablecerRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/artesano/$id': {
       id: '/artesano/$id'
       path: '/artesano/$id'
@@ -286,6 +306,7 @@ const rootRouteChildren: RootRouteChildren = {
   PanelRoute: PanelRoute,
   PedidosRoute: PedidosRoute,
   PerfilRoute: PerfilRoute,
+  RestablecerRoute: RestablecerRoute,
   ArtesanoIdRoute: ArtesanoIdRoute,
   ProductoIdRoute: ProductoIdRoute,
 }
