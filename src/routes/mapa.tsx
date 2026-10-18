@@ -2,7 +2,8 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { ExternalLink, MapPin, Navigation, Route as RouteIcon } from "lucide-react";
 import { useState } from "react";
 import { AppShell } from "@/components/AppShell";
-import { artesanos, puntosInteres } from "@/lib/data";
+import { puntosInteres } from "@/lib/data";
+import { useApp } from "@/lib/store";
 
 export const Route = createFileRoute("/mapa")({
   head: () => ({
@@ -20,8 +21,16 @@ const comoLlegar = (destino: string) =>
   `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${destino}, Santa Marta, Colombia`)}`;
 
 function Mapa() {
-  const [seleccion, setSeleccion] = useState(artesanos[0]!.id);
-  const activo = artesanos.find((a) => a.id === seleccion)!;
+  const { artesanos } = useApp();
+  const [seleccion, setSeleccion] = useState("a1");
+  const activo = artesanos.find((a) => a.id === seleccion) ?? artesanos[0];
+  if (!activo) {
+    return (
+      <AppShell>
+        <p className="py-16 text-center text-sm text-muted-foreground">Cargando la ruta artesanal…</p>
+      </AppShell>
+    );
+  }
 
   return (
     <AppShell>
