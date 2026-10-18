@@ -1,12 +1,17 @@
 import { Link } from "@tanstack/react-router";
 import { Heart } from "lucide-react";
-import { artesanos, formatoCOP, type Producto } from "@/lib/data";
-import { useApp } from "@/lib/store";
+import { toast } from "sonner";
+import { formatoCOP } from "@/lib/data";
+import { useApp, type Producto } from "@/lib/store";
 
 export function ProductCard({ producto }: { producto: Producto }) {
+  const { favoritos, toggleFavorito, resenas, artesanos } = useApp();
   const artesano = artesanos.find((a) => a.id === producto.artesanoId);
-  const { favoritos, toggleFavorito, resenas } = useApp();
   const esFavorito = favoritos.includes(producto.id);
+  const alternarFavorito = async () => {
+    const r = await toggleFavorito(producto.id);
+    if (!r.ok) toast.error(r.error);
+  };
   const resenasProducto = resenas.filter((r) => r.productoId === producto.id);
   const promedio =
     resenasProducto.length > 0
