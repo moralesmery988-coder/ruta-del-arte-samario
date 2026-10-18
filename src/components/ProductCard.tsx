@@ -30,7 +30,7 @@ export function ProductCard({ producto }: { producto: Producto }) {
           />
         </div>
         <div className="space-y-1 p-3.5">
-          <p className="text-[11px] uppercase tracking-wider text-accent">{producto.categoria}</p>
+          <p className="text-[11px] uppercase tracking-wider text-accent">{producto.categoria}{producto.agotado && " · Agotado"}</p>
           <h3 className="line-clamp-2 font-display text-[15px] font-semibold leading-snug">{producto.nombre}</h3>
           <p className="text-xs text-muted-foreground">por {artesano?.nombre ?? "Artesano local"}</p>
           <div className="flex items-center justify-between pt-1">
@@ -44,7 +44,7 @@ export function ProductCard({ producto }: { producto: Producto }) {
         </div>
       </Link>
       <button
-        onClick={() => toggleFavorito(producto.id)}
+        onClick={alternarFavorito}
         aria-label={esFavorito ? `Quitar ${producto.nombre} de favoritos` : `Guardar ${producto.nombre} en favoritos`}
         aria-pressed={esFavorito}
         className="absolute right-2.5 top-2.5 inline-flex h-9 w-9 items-center justify-center rounded-full bg-background/85 shadow-card backdrop-blur"
