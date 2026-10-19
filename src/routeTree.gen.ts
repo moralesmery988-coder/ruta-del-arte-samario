@@ -14,12 +14,14 @@ import { Route as AuthRouteImport } from './routes/auth'
 import { Route as CarritoRouteImport } from './routes/carrito'
 import { Route as ExplorarRouteImport } from './routes/explorar'
 import { Route as FavoritosRouteImport } from './routes/favoritos'
+import { Route as HistoriasRouteImport } from './routes/historias'
 import { Route as MapaRouteImport } from './routes/mapa'
 import { Route as MensajesRouteImport } from './routes/mensajes'
 import { Route as PanelRouteImport } from './routes/panel'
 import { Route as PedidosRouteImport } from './routes/pedidos'
 import { Route as PerfilRouteImport } from './routes/perfil'
 import { Route as RestablecerRouteImport } from './routes/restablecer'
+import { Route as TallerRouteImport } from './routes/taller'
 import { Route as ArtesanoIdRouteImport } from './routes/artesano.$id'
 import { Route as ProductoIdRouteImport } from './routes/producto.$id'
 
@@ -46,6 +48,11 @@ const ExplorarRoute = ExplorarRouteImport.update({
 const FavoritosRoute = FavoritosRouteImport.update({
   id: '/favoritos',
   path: '/favoritos',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const HistoriasRoute = HistoriasRouteImport.update({
+  id: '/historias',
+  path: '/historias',
   getParentRoute: () => rootRouteImport,
 } as any)
 const MapaRoute = MapaRouteImport.update({
@@ -78,6 +85,11 @@ const RestablecerRoute = RestablecerRouteImport.update({
   path: '/restablecer',
   getParentRoute: () => rootRouteImport,
 } as any)
+const TallerRoute = TallerRouteImport.update({
+  id: '/taller',
+  path: '/taller',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ArtesanoIdRoute = ArtesanoIdRouteImport.update({
   id: '/artesano/$id',
   path: '/artesano/$id',
@@ -95,12 +107,14 @@ export interface FileRoutesByFullPath {
   '/carrito': typeof CarritoRoute
   '/explorar': typeof ExplorarRoute
   '/favoritos': typeof FavoritosRoute
+  '/historias': typeof HistoriasRoute
   '/mapa': typeof MapaRoute
   '/mensajes': typeof MensajesRoute
   '/panel': typeof PanelRoute
   '/pedidos': typeof PedidosRoute
   '/perfil': typeof PerfilRoute
   '/restablecer': typeof RestablecerRoute
+  '/taller': typeof TallerRoute
   '/artesano/$id': typeof ArtesanoIdRoute
   '/producto/$id': typeof ProductoIdRoute
 }
@@ -110,12 +124,14 @@ export interface FileRoutesByTo {
   '/carrito': typeof CarritoRoute
   '/explorar': typeof ExplorarRoute
   '/favoritos': typeof FavoritosRoute
+  '/historias': typeof HistoriasRoute
   '/mapa': typeof MapaRoute
   '/mensajes': typeof MensajesRoute
   '/panel': typeof PanelRoute
   '/pedidos': typeof PedidosRoute
   '/perfil': typeof PerfilRoute
   '/restablecer': typeof RestablecerRoute
+  '/taller': typeof TallerRoute
   '/artesano/$id': typeof ArtesanoIdRoute
   '/producto/$id': typeof ProductoIdRoute
 }
@@ -126,12 +142,14 @@ export interface FileRoutesById {
   '/carrito': typeof CarritoRoute
   '/explorar': typeof ExplorarRoute
   '/favoritos': typeof FavoritosRoute
+  '/historias': typeof HistoriasRoute
   '/mapa': typeof MapaRoute
   '/mensajes': typeof MensajesRoute
   '/panel': typeof PanelRoute
   '/pedidos': typeof PedidosRoute
   '/perfil': typeof PerfilRoute
   '/restablecer': typeof RestablecerRoute
+  '/taller': typeof TallerRoute
   '/artesano/$id': typeof ArtesanoIdRoute
   '/producto/$id': typeof ProductoIdRoute
 }
@@ -143,12 +161,14 @@ export interface FileRouteTypes {
     | '/carrito'
     | '/explorar'
     | '/favoritos'
+    | '/historias'
     | '/mapa'
     | '/mensajes'
     | '/panel'
     | '/pedidos'
     | '/perfil'
     | '/restablecer'
+    | '/taller'
     | '/artesano/$id'
     | '/producto/$id'
   fileRoutesByTo: FileRoutesByTo
@@ -158,12 +178,14 @@ export interface FileRouteTypes {
     | '/carrito'
     | '/explorar'
     | '/favoritos'
+    | '/historias'
     | '/mapa'
     | '/mensajes'
     | '/panel'
     | '/pedidos'
     | '/perfil'
     | '/restablecer'
+    | '/taller'
     | '/artesano/$id'
     | '/producto/$id'
   id:
@@ -173,12 +195,14 @@ export interface FileRouteTypes {
     | '/carrito'
     | '/explorar'
     | '/favoritos'
+    | '/historias'
     | '/mapa'
     | '/mensajes'
     | '/panel'
     | '/pedidos'
     | '/perfil'
     | '/restablecer'
+    | '/taller'
     | '/artesano/$id'
     | '/producto/$id'
   fileRoutesById: FileRoutesById
@@ -189,12 +213,14 @@ export interface RootRouteChildren {
   CarritoRoute: typeof CarritoRoute
   ExplorarRoute: typeof ExplorarRoute
   FavoritosRoute: typeof FavoritosRoute
+  HistoriasRoute: typeof HistoriasRoute
   MapaRoute: typeof MapaRoute
   MensajesRoute: typeof MensajesRoute
   PanelRoute: typeof PanelRoute
   PedidosRoute: typeof PedidosRoute
   PerfilRoute: typeof PerfilRoute
   RestablecerRoute: typeof RestablecerRoute
+  TallerRoute: typeof TallerRoute
   ArtesanoIdRoute: typeof ArtesanoIdRoute
   ProductoIdRoute: typeof ProductoIdRoute
 }
@@ -234,6 +260,13 @@ declare module '@tanstack/react-router' {
       path: '/favoritos'
       fullPath: '/favoritos'
       preLoaderRoute: typeof FavoritosRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/historias': {
+      id: '/historias'
+      path: '/historias'
+      fullPath: '/historias'
+      preLoaderRoute: typeof HistoriasRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/mapa': {
@@ -278,6 +311,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof RestablecerRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/taller': {
+      id: '/taller'
+      path: '/taller'
+      fullPath: '/taller'
+      preLoaderRoute: typeof TallerRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/artesano/$id': {
       id: '/artesano/$id'
       path: '/artesano/$id'
@@ -301,12 +341,14 @@ const rootRouteChildren: RootRouteChildren = {
   CarritoRoute: CarritoRoute,
   ExplorarRoute: ExplorarRoute,
   FavoritosRoute: FavoritosRoute,
+  HistoriasRoute: HistoriasRoute,
   MapaRoute: MapaRoute,
   MensajesRoute: MensajesRoute,
   PanelRoute: PanelRoute,
   PedidosRoute: PedidosRoute,
   PerfilRoute: PerfilRoute,
   RestablecerRoute: RestablecerRoute,
+  TallerRoute: TallerRoute,
   ArtesanoIdRoute: ArtesanoIdRoute,
   ProductoIdRoute: ProductoIdRoute,
 }
