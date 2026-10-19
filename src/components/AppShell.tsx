@@ -8,8 +8,9 @@ import { useApp } from "@/lib/store";
 const navDesktop = [
   { to: "/", label: "Inicio" },
   { to: "/explorar", label: "Explorar" },
+  { to: "/historias", label: "Historias" },
+  { to: "/taller", label: "Mi taller" },
   { to: "/mapa", label: "Mapa" },
-  { to: "/favoritos", label: "Favoritos" },
   { to: "/mensajes", label: "Chats" },
   { to: "/pedidos", label: "Pedidos" },
 ] as const;
@@ -67,7 +68,7 @@ function CampanaNotificaciones() {
           ) : (
             <ul className="max-h-72 space-y-1 overflow-y-auto">
               {notificaciones.slice(0, 8).map((n) => (
-                <li key={n.id} className="rounded-xl bg-muted/60 px-3 py-2.5">
+                <li key={n.id} className={`rounded-xl px-3 py-2.5 ${n.leida ? "bg-muted/40" : "bg-secondary"}`}>
                   <p className="text-xs font-semibold">{n.titulo}</p>
                   <p className="mt-0.5 text-xs leading-snug text-muted-foreground">{n.detalle}</p>
                   <p className="mt-1 text-[10px] text-muted-foreground/70">
@@ -87,6 +88,8 @@ export function AppShell({ children }: { children: ReactNode }) {
   const { carrito, usuario, favoritos, conversaciones } = useApp();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const total = carrito.reduce((a, b) => a + b.cantidad, 0);
+  const { notificaciones } = useApp();
+  const noLeidosChat = notificaciones.filter((n) => !n.leida && n.titulo === "Nuevo mensaje").length || (conversaciones.length ? 0 : 0);
 
   return (
     <div className="min-h-screen bg-background pb-24 md:pb-0">
@@ -183,7 +186,7 @@ export function AppShell({ children }: { children: ReactNode }) {
             const Icon = n.icon;
             const activo = n.to === "/" ? pathname === "/" : pathname.startsWith(n.to);
             const badge =
-              n.to === "/carrito" ? total : n.to === "/favoritos" ? favoritos.length : n.to === "/mensajes" ? conversaciones.length : 0;
+              n.to === "/carrito" ? total : n.to === "/favoritos" ? favoritos.length : n.to === "/mensajes" ? noLeidosChat : 0;
             return (
               <Link
                 key={n.to}
