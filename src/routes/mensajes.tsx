@@ -1,6 +1,7 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { MessageCircle, Send } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
+import { toast } from "sonner";
 import { AppShell } from "@/components/AppShell";
 import { useApp } from "@/lib/store";
 
@@ -21,47 +22,40 @@ export const Route = createFileRoute("/mensajes")({
   component: Mensajes,
 });
 
-const respuestasAutomaticas = [
-  "¡Hola! Gracias por escribirnos. Con gusto te contamos más sobre esta pieza.",
-  "Claro que sí, podemos personalizarla. Cuéntanos qué tienes en mente.",
-  "Tenemos disponibilidad inmediata. Si confirmas hoy, sale en el próximo envío.",
-  "El envío a Santa Marta tarda de 1 a 2 días; al resto del país, de 3 a 5 días hábiles.",
-];
-
 function Mensajes() {
   const { conversaciones, enviarMensaje, usuario } = useApp();
   const { con } = Route.useSearch();
   const navigate = useNavigate({ from: "/mensajes" });
   const [texto, setTexto] = useState("");
   const finalRef = useRef<HTMLDivElement>(null);
-  const temporizador = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const activa = conversaciones.find((c) => c.id === con) ?? conversaciones[0];
+  const soyArtesano = (c: { compradorId: string }) => c.compradorId !== usuario?.id;
 
   useEffect(() => {
     finalRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [activa?.mensajes.length]);
 
-  useEffect(
-    () => () => {
-      if (temporizador.current) clearTimeout(temporizador.current);
-    },
-    [],
-  );
-
-  const enviar = (e: React.FormEvent) => {
+  const enviar = async (e: React.FormEvent) => {
     e.preventDefault();
     const limpio = texto.trim();
     if (!limpio || !activa) return;
-    enviarMensaje(activa.id, "comprador", limpio);
     setTexto("");
-    if (temporizador.current) clearTimeout(temporizador.current);
-    const convId = activa.id;
-    temporizador.current = setTimeout(() => {
-      const respuesta = respuestasAutomaticas[Math.floor(Math.random() * respuestasAutomaticas.length)]!;
-      enviarMensaje(convId, "artesano", respuesta);
-    }, 2200);
+    const r = await enviarMensaje(activa.id, limpio);
+    if (!r.ok) { setTexto(limpio); toast.error("No se envió el mensaje", { description: r.error }); }
   };
+
+  if (!usuario) {
+    return (
+      <AppShell>
+        <div className="mx-auto max-w-md px-5 py-16 text-center">
+          <h1 className="font-display text-2xl font-bold">Inicia sesión para ver tus mensajes</h1>
+          <p className="mt-2 text-sm text-muted-foreground">Tus conversaciones con artesanos son privadas.</p>
+          <Link to="/auth" className="mt-6 inline-block rounded-full bg-accent px-6 py-3 text-sm font-semibold text-accent-foreground">Iniciar sesión</Link>
+        </div>
+      </AppShell>
+    );
+  }
 
   return (
     <AppShell>
@@ -75,7 +69,7 @@ function Mensajes() {
           <div className="mt-10 rounded-3xl border border-dashed border-border p-10 text-center">
             <MessageCircle className="mx-auto h-10 w-10 text-muted-foreground" />
             <p className="mt-4 text-sm text-muted-foreground">
-              Todavía no tienes conversaciones. Abre un producto y toca “Escribir al artesano”.
+              Todavía no tienes conversaciones. Abre un producto y toca “Escribir al artesano”. Si eres artesano, aquí llegarán las preguntas de tus compradores.
             </p>
             <Link
               to="/explorar"
@@ -97,7 +91,7 @@ function Mensajes() {
                         activa?.id === c.id ? "border-accent bg-secondary" : "border-border bg-card"
                       }`}
                     >
-                      <p className="truncate text-sm font-semibold">{c.artesanoNombre}</p>
+                      <p className="truncate text-sm font-semibold">{soyArtesano(c) ? c.comprador : c.artesanoNombre}</p>
                       {c.productoNombre && (
                         <p className="truncate text-[11px] uppercase tracking-wide text-accent">{c.productoNombre}</p>
                       )}
@@ -113,7 +107,7 @@ function Mensajes() {
             {activa && (
               <section className="flex min-h-[60vh] flex-col rounded-3xl border border-border bg-card">
                 <header className="border-b border-border px-5 py-3.5">
-                  <p className="font-display text-base font-bold">{activa.artesanoNombre}</p>
+                  <p className="font-display text-base font-bold">{soyArtesano(activa) ? activa.comprador : activa.artesanoNombre}</p>
                   {activa.productoNombre && (
                     <p className="text-xs text-muted-foreground">
                       Sobre: {activa.productoNombre}
@@ -127,19 +121,22 @@ function Mensajes() {
                       Escribe tu primera pregunta: disponibilidad, personalización o tiempos de entrega.
                     </p>
                   )}
-                  {activa.mensajes.map((m, i) => (
-                    <div key={i} className={`flex ${m.de === "comprador" ? "justify-end" : "justify-start"}`}>
+                  {activa.mensajes.map((m) => {
+                    const mio = (m.de === "artesano") === soyArtesano(activa);
+                    return (
+                    <div key={m.id} className={`flex ${mio ? "justify-end" : "justify-start"}`}>
                       <p
                         className={`max-w-[80%] rounded-2xl px-3.5 py-2 text-sm leading-snug ${
-                          m.de === "comprador"
+                          mio
                             ? "rounded-br-md bg-accent text-accent-foreground"
                             : "rounded-bl-md bg-secondary text-secondary-foreground"
                         }`}
                       >
                         {m.texto}
+                        <span className="mt-0.5 block text-[10px] opacity-70">{new Date(m.fecha).toLocaleTimeString("es-CO", { timeStyle: "short" })}</span>
                       </p>
                     </div>
-                  ))}
+                  );})}
                   <div ref={finalRef} />
                 </div>
 
@@ -147,7 +144,8 @@ function Mensajes() {
                   <input
                     value={texto}
                     onChange={(e) => setTexto(e.target.value)}
-                    placeholder={`Escribe como ${usuario?.nombre ?? "Invitado"}…`}
+                    placeholder="Escribe un mensaje…"
+                    maxLength={2000}
                     aria-label="Escribe un mensaje"
                     className="flex-1 rounded-full border border-input bg-background px-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-ring"
                   />
