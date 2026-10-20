@@ -21,9 +21,9 @@ function Restablecer() {
   const navigate = useNavigate();
   const guardar = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (clave.length < 8) return toast.error("Mínimo 8 caracteres");
+    if (clave.length < 8) { toast.error("Mínimo 8 caracteres"); return; }
     const { error } = await supabase.auth.updateUser({ password: clave });
-    if (error) return toast.error("No se pudo cambiar", { description: error.message });
+    if (error) { toast.error("No se pudo cambiar", { description: error.message }); return; }
     toast.success("Contraseña actualizada");
     navigate({ to: "/perfil" });
   };

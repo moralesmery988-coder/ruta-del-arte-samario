@@ -348,10 +348,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
       miTienda,
       actualizarTienda: async (d) => {
         if (!miTienda) return { ok: false, error: "No tienes una tienda" };
-        const fila: Record<string, string> = {};
+        const fila: Record<string, string> & { nombre?: string } = {} as never;
         const mapa: Record<string, string> = { contactoPublico: "contacto_publico" };
         for (const [k, v] of Object.entries(d)) if (v !== undefined) fila[mapa[k] ?? k] = v as string;
-        const { error } = await supabase.from("artesanos").update(fila).eq("id", miTienda.id);
+        const { error } = await supabase.from("artesanos").update(fila as never).eq("id", miTienda.id);
         if (error) return fallo(error);
         await cargarPublico();
         return { ok: true };
