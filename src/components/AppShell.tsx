@@ -85,11 +85,11 @@ function CampanaNotificaciones() {
 }
 
 export function AppShell({ children }: { children: ReactNode }) {
-  const { carrito, usuario, favoritos, conversaciones } = useApp();
+  const { carrito, usuario, favoritos } = useApp();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const total = carrito.reduce((a, b) => a + b.cantidad, 0);
   const { notificaciones } = useApp();
-  const noLeidosChat = notificaciones.filter((n) => !n.leida && n.titulo === "Nuevo mensaje").length || (conversaciones.length ? 0 : 0);
+  const noLeidosChat = notificaciones.filter((n) => !n.leida && n.titulo === "Nuevo mensaje").length;
 
   return (
     <div className="min-h-screen bg-background pb-24 md:pb-0">
